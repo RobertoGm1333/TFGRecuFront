@@ -18,7 +18,7 @@ onMounted(() => {
 
   const pawContainer = document.createElement('div');
   pawContainer.id = 'paw-prints-container';
-  
+   
   // Crear las huellas en sets de 2 en 2, en diagonal
   const pawPositions = [
     { left: '18%', top: '-12%', rotate: '-45deg' },
