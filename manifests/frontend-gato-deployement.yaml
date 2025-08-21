@@ -1,0 +1,24 @@
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  name: frontend-gato-deployment
+  labels: 
+     app: gato
+
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: gato
+
+  template:
+    metadata:
+      labels:
+        app: gato
+    spec:
+      containers:
+      - name: gato
+        image: robertogm1333/frontend:lastest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
