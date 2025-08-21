@@ -1,0 +1,33 @@
+export default class SolicitudAdopcionDto {
+    constructor(
+        public id_Solicitud: number,
+        public id_Usuario: number,
+        public id_Gato: number,
+        public fecha_Solicitud: Date,
+        public estado: string,
+        public nombreCompleto: string,
+        public edad: number | null,
+        public direccion: string,
+        public dni: string,
+        public telefono: string,
+        public email: string,
+        public tipoVivienda: string,
+        public propiedadAlquiler: string,
+        public permiteAnimales: boolean,
+        public numeroPersonas: number | null,
+        public hayNinos: boolean,
+        public edadesNinos: string,
+        public experienciaGatos: boolean,
+        public tieneOtrosAnimales: boolean,
+        public cortarUnas: boolean,
+        public animalesVacunadosEsterilizados: boolean,
+        public historialMascotas: string,
+        public motivacionAdopcion: string,
+        public problemasComportamiento: string,
+        public enfermedadesCostosas: string,
+        public vacaciones: string,
+        public seguimientoPostAdopcion: boolean,
+        public visitaHogar: boolean,
+        public comentario_Protectora: string
+    ) {}
+}
