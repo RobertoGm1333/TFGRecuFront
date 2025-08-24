@@ -1,170 +1,33 @@
-<script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useAutenticacion } from '@/stores/Autentificacion';
-import { useSolicitudesAdopcionStore } from '@/stores/solicitudesAdopcion'
+  <script setup lang="ts">
+  import { ref, onMounted } from 'vue'
+  import { useAutenticacion } from '@/stores/Autentificacion';
+  import { useSolicitudesAdopcionStore } from '@/stores/solicitudesAdopcion'
+  import GraficaHistorialAdopciones from '@/components/GraficaHistorialAdopciones.vue'
 
-const authStore = useAutenticacion()
-const solicitudesStore = useSolicitudesAdopcionStore()
+  const authStore = useAutenticacion()
+  const solicitudesStore = useSolicitudesAdopcionStore()
 
-const gatos = ref<any[]>([])
-const mostrarDialogo = ref(false)
-const mostrarConfirmacion = ref(false)
-const gatoAEliminar = ref<any>(null)
-const idProtectora = ref<number | null>(null)
+  const gatos = ref<any[]>([])
+  const mostrarDialogo = ref(false)
+  const mostrarConfirmacion = ref(false)
+  const gatoAEliminar = ref<any>(null)
+  const idProtectora = ref<number | null>(null)
 
-const solicitudes = ref<any[]>([])
-const nuevoEstado = ref('')
-const comentarioProtectora = ref('')
-const mostrarMensaje = ref(false)
-const mensajeTexto = ref('')
-const mensajeTipo = ref('success')
-
-const gato = ref<any>({
-  id_Gato: 0,
-  nombre_Gato: '',
-  raza: '',
-  edad: 0,
-  sexo: '',
-  esterilizado: false,
-  descripcion_Gato: '', // Descripción en español
-  descripcion_Gato_En: '', // Descripción en inglés
-  imagen_Gato: '',
-  id_Protectora: null,
-  visible: true
-})
-
-const formularioGato = ref()
-
-const nombresGatos = ref<Map<number, string>>(new Map())
-const nombresUsuarios = ref<Map<number, string>>(new Map())
-
-const solicitud = ref<any>(null)
-
-const headers = [
-  { title: 'ID', key: 'id_Gato' },
-  { title: 'Nombre', key: 'nombre_Gato' },
-  { title: 'Raza', key: 'raza' },
-  { title: 'Edad', key: 'edad' },
-  { title: 'Sexo', key: 'sexo' },
-  { title: 'Esterilizado', key: 'esterilizado' },
-  { title: 'Visible', key: 'visible' },
-  { title: 'Acciones', key: 'acciones', sortable: false }
-]
-
-// Reglas de validación
-const reglas = {
-  estado: [(v: string) => !!v || 'El estado es obligatorio'],
-  comentario: [(v: string) => !!v || 'El comentario es obligatorio']
-}
-
-onMounted(async () => {
-  try {
-    const response = await fetch(`http://localhost:5167/api/Protectora/usuario/${authStore.obtenerIdUsuario}`);
-    if (!response.ok) throw new Error("No se pudo obtener la protectora");
-
-    const protectora = await response.json();
-    idProtectora.value = protectora.id_Protectora;
-
-    await cargarGatos()
-    await cargarSolicitudes()
-  } catch (err) {
-    console.error("Error cargando datos de la protectora:", err);
-  }
-})
-
-async function cargarGatos() {
-  if (!idProtectora.value) return
-
-  try {
-    const res = await fetch(`http://localhost:5167/api/Gato/protectora/${idProtectora.value}`);
-    if (!res.ok) throw new Error("Error al obtener gatos");
-
-    gatos.value = await res.json();
-  } catch (err) {
-    console.error("Error cargando gatos:", err);
-  }
-}
-
-async function cargarSolicitudes() {
-  if (!idProtectora.value) return
-
-  await solicitudesStore.fetchSolicitudesProtectora(idProtectora.value)
-  solicitudes.value = solicitudesStore.solicitudes
-
-  for (const solicitud of solicitudes.value) {
-    await cargarDatosGato(solicitud.id_Gato)
-    await cargarDatosUsuario(solicitud.id_Usuario)
-  }
-}
-
-async function cargarDatosGato(idGato: number) {
-  try {
-    const res = await fetch(`http://localhost:5167/api/Gato/${idGato}`)
-    if (!res.ok) throw new Error('Error al obtener el gato')
-    const gato = await res.json()
-    nombresGatos.value.set(idGato, gato.nombre_Gato)
-  } catch (err) {
-    console.error('Error cargando datos del gato:', err)
-  }
-}
-
-async function cargarDatosUsuario(idUsuario: number) {
-  try {
-    const res = await fetch(`http://localhost:5167/api/Usuario/${idUsuario}`)
-    if (!res.ok) throw new Error('Error al obtener el usuario')
-    const usuario = await res.json()
-    nombresUsuarios.value.set(idUsuario, `${usuario.nombre} ${usuario.apellido}`)
-  } catch (err) {
-    console.error('Error cargando datos del usuario:', err)
-  }
-}
-
-async function cargarSolicitud(id_Solicitud: number) {
-  try {
-    const solicitudData = await solicitudesStore.fetchSolicitudById(id_Solicitud)
-    if (solicitudData) {
-      solicitud.value = solicitudData
-      nuevoEstado.value = solicitudData.estado.toLowerCase()
-      comentarioProtectora.value = solicitudData.comentario_Protectora || ''
-    }
-  } catch (error) {
-    console.error('Error al cargar la solicitud:', error)
-  }
-}
-
-async function actualizarEstado(solicitudItem: any) {
-  // Validar campos
-  if (!nuevoEstado.value || !comentarioProtectora.value) {
-    mensajeTipo.value = 'error'
-    mensajeTexto.value = 'Por favor, complete todos los campos'
-    mostrarMensaje.value = true
-    return
+  const solicitudes = ref<any[]>([])
+  type PuntoGrafica = {
+    mesYYYYMM: string
+    total: number
+    id_Protectora?: number
+    nombre_Protectora?: string
   }
 
-  try {
-    await solicitudesStore.updateEstadoSolicitud(
-      solicitudItem.id_Solicitud, 
-      nuevoEstado.value, 
-      comentarioProtectora.value, 
-      idProtectora.value!
-    )
-    mensajeTipo.value = 'success'
-    mensajeTexto.value = 'Solicitud editada correctamente'
-    mostrarMensaje.value = true
-    await cargarSolicitudes()
-    nuevoEstado.value = ''
-    comentarioProtectora.value = ''
-    solicitudItem.showDialog = false
-  } catch (err) {
-    console.error('Error actualizando estado:', err)
-    mensajeTipo.value = 'error'
-    mensajeTexto.value = 'Error al actualizar la solicitud'
-    mostrarMensaje.value = true
-  }
-}
+  const serieGrafica = ref<PuntoGrafica[]>([])
+  const cargandoGrafica = ref(true)
+  const errorGrafica = ref<string | null>(null)
+  const nuevoEstado = ref('')
+  const comentarioProtectora = ref('')
 
-function abrirFormulario() {
-  gato.value = {
+  const gato = ref<any>({
     id_Gato: 0,
     nombre_Gato: '',
     raza: '',
@@ -174,708 +37,761 @@ function abrirFormulario() {
     descripcion_Gato: '', // Descripción en español
     descripcion_Gato_En: '', // Descripción en inglés
     imagen_Gato: '',
-    id_Protectora: idProtectora.value,
+    id_Protectora: null,
     visible: true
+  })
+
+  const formularioGato = ref<any>({
+    id_Gato: 0,
+    nombre_Gato: '',
+    raza: '',
+    edad: 0,
+    sexo: '',
+    esterilizado: false,
+    descripcion_Gato: '',
+    imagen_Gato: '',
+    id_Protectora: null,
+    visible: true
+  })
+
+  const headers = [
+    { title: 'ID', key: 'id_Gato' },
+    { title: 'Nombre', key: 'nombre_Gato' },
+    { title: 'Raza', key: 'raza' },
+    { title: 'Edad', key: 'edad' },
+    { title: 'Sexo', key: 'sexo' },
+    { title: 'Esterilizado', key: 'esterilizado' },
+    { title: 'Visible', key: 'visible' },
+    { title: 'Acciones', key: 'acciones', sortable: false }
+  ]
+
+  const headersSolicitudes = [
+    { title: 'ID Solicitud', key: 'id_Solicitud' },
+    { title: 'Usuario', key: 'nombre_Usuario' },
+    { title: 'Gato', key: 'nombre_Gato' },
+    { title: 'Fecha', key: 'fecha_Solicitud' },
+    { title: 'Estado', key: 'estado' },
+    { title: 'Acciones', key: 'acciones', sortable: false }
+  ]
+
+  const fotoPreview = ref<string | null>(null)
+  const archivoImagen = ref<File | null>(null)
+
+  const mensajeSnack = ref(false)
+  const mensajeTexto = ref('')
+  const mensajeTipo = ref('success')
+
+  async function cargarSerieGrafica() {
+    try {
+      const res = await fetch('http://localhost:5167/api/Adopcion/grafica/por-protectora', { headers: { Accept: 'application/json' } })
+      if (!res.ok) throw new Error('Error HTTP ' + res.status)
+      const data = await res.json()
+      let lista = Array.isArray(data) ? data : []
+      if (idProtectora.value != null) {
+        lista = lista.filter((x: any) => x.id_Protectora === idProtectora.value)
+      }
+      serieGrafica.value = lista
+    } catch (e: any) {
+      errorGrafica.value = e?.message ?? 'Error cargando datos de la gráfica'
+      serieGrafica.value = []
+    } finally {
+      cargandoGrafica.value = false
+    }
   }
-  mostrarDialogo.value = true
-}
 
-function editarGato(g: any) {
-  gato.value = { ...g }
-  mostrarDialogo.value = true
-}
-
-function cerrarDialogo() {
-  mostrarDialogo.value = false
-}
-
-async function guardarGato() {
-  const { valid } = await formularioGato.value?.validate()
-  if (!valid) return
-
-  if (!idProtectora.value) return
-
-  gato.value.id_Protectora = idProtectora.value
-
-  const metodo = gato.value.id_Gato ? 'PUT' : 'POST'
-  const url = gato.value.id_Gato
-    ? `http://localhost:5167/api/Gato/${gato.value.id_Gato}`
-    : 'http://localhost:5167/api/Gato'
-
-  try {
-    const res = await fetch(url, {
-      method: metodo,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(gato.value)
-    })
-
-    if (!res.ok) throw new Error('Error al guardar el gato')
-    cerrarDialogo()
-    await cargarGatos()
-  } catch (err) {
-    console.error(err)
+  // Reglas de validación
+  const reglas = {
+    estado: [(v: string) => !!v || 'El estado es obligatorio'],
+    comentario: [(v: string) => !!v || 'El comentario es obligatorio']
   }
-}
 
-function pedirConfirmacion(g: any) {
-  gatoAEliminar.value = g
-  mostrarConfirmacion.value = true
-}
+  onMounted(async () => {
+    try {
+      const response = await fetch(`http://localhost:5167/api/Protectora/usuario/${authStore.obtenerIdUsuario}`);
+      if (!response.ok) throw new Error("No se pudo obtener la protectora");
 
-async function confirmarEliminacion() {
-  if (!gatoAEliminar.value) return
+      const protectora = await response.json();
+      idProtectora.value = protectora.id_Protectora;
 
-  try {
-    const res = await fetch(`http://localhost:5167/api/Gato/${gatoAEliminar.value.id_Gato}`, {
-      method: 'DELETE'
-    })
+      await cargarGatos()
+      await cargarSolicitudes()
+      await cargarSerieGrafica()
+    } catch (err) {
+      console.error("Error cargando datos de la protectora:", err);
+    }
+  })
 
-    if (!res.ok) throw new Error('Error al eliminar el gato')
-    mostrarConfirmacion.value = false
-    await cargarGatos()
-  } catch (err) {
-    console.error(err)
+  async function cargarGatos() {
+    if (!idProtectora.value) return
+
+    try {
+      const res = await fetch(`http://localhost:5167/api/Gato/protectora/${idProtectora.value}`);
+      if (!res.ok) throw new Error("Error al obtener gatos");
+
+      gatos.value = await res.json();
+    } catch (err) {
+      console.error("Error cargando gatos:", err);
+    }
   }
-}
 
-function getEstadoColor(estado: string) {
-  switch (estado) {
-    case 'Pendiente':
-      return 'orange'
-    case 'Aceptada':
-      return 'green'
-    case 'Rechazada':
-      return 'red'
-    default:
-      return 'grey'
+  async function cargarSolicitudes() {
+    if (!idProtectora.value) return
+
+    await solicitudesStore.fetchSolicitudesProtectora(idProtectora.value)
+    solicitudes.value = solicitudesStore.solicitudes
+
+    for (const solicitud of solicitudes.value) {
+      await cargarDatosGato(solicitud.id_Gato)
+      await cargarDatosUsuario(solicitud.id_Usuario)
+    }
   }
-}
-</script>
+
+  async function cargarDatosGato(idGato: number) {
+    try {
+      const response = await fetch(`http://localhost:5167/api/Gato/${idGato}`)
+      if (!response.ok) throw new Error("Error al obtener datos del gato")
+
+      const gatoData = await response.json()
+
+      const solicitud = solicitudes.value.find(s => s.id_Gato === idGato)
+
+      if (solicitud) {
+        solicitud.nombre_Gato = gatoData.nombre_Gato || 'Desconocido'
+        solicitud.raza_Gato = gatoData.raza || 'Sin raza'
+        solicitud.edad_Gato = gatoData.edad || 'N/A'
+        solicitud.sexo_Gato = gatoData.sexo || 'N/A'
+        solicitud.esterilizado_Gato = gatoData.esterilizado || false
+        solicitud.descripcion_Gato = gatoData.descripcion_Gato || ''
+        solicitud.imagen_Gato = gatoData.imagen_Gato || ''
+      }
+    } catch (error) {
+      console.error('Error al cargar datos del gato:', error)
+    }
+  }
+
+  async function cargarDatosUsuario(idUsuario: number) {
+    try {
+      const response = await fetch(`http://localhost:5167/api/Usuario/${idUsuario}`)
+      if (!response.ok) throw new Error("Error al obtener datos del usuario")
+
+      const usuarioData = await response.json()
+
+      const solicitud = solicitudes.value.find(s => s.id_Usuario === idUsuario)
+      if (solicitud) {
+        solicitud.nombre_Usuario = usuarioData.nombre || 'Desconocido'
+        solicitud.apellido_Usuario = usuarioData.apellido || ''
+        solicitud.email_Usuario = usuarioData.email || 'Sin email'
+        solicitud.telefono_Usuario = usuarioData.telefono || 'Sin teléfono'
+        solicitud.direccion = usuarioData.direccion || 'Sin dirección'
+        solicitud.ciudad = usuarioData.ciudad || 'Sin ciudad'
+        solicitud.provincia = usuarioData.provincia || 'Sin provincia'
+        solicitud.codigo_Postal = usuarioData.codigo_Postal || 'N/A'
+        solicitud.pais = usuarioData.pais || 'Sin país'
+      }
+    } catch (error) {
+      console.error('Error al cargar datos del usuario:', error)
+    }
+  }
+
+  function abrirFormulario() {
+    if (!idProtectora.value) return
+
+    formularioGato.value = {
+      id_Gato: 0,
+      nombre_Gato: '',
+      raza: '',
+      edad: 0,
+      sexo: '',
+      esterilizado: false,
+      descripcion_Gato: '',
+      imagen_Gato: '',
+      id_Protectora: idProtectora.value,
+      visible: true
+    }
+    fotoPreview.value = null
+    archivoImagen.value = null
+    mostrarDialogo.value = true
+  }
+
+  function editarGato(item: any) {
+    formularioGato.value = { ...item }
+    fotoPreview.value = item.imagen_Gato || null
+    archivoImagen.value = null
+    mostrarDialogo.value = true
+  }
+
+  function confirmarEliminar(item: any) {
+    gatoAEliminar.value = item
+    mostrarConfirmacion.value = true
+  }
+
+  async function eliminarGato() {
+    if (!gatoAEliminar.value) return
+    try {
+      const response = await fetch(`http://localhost:5167/api/Gato/${gatoAEliminar.value.id_Gato}`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) throw new Error('Error al eliminar el gato')
+
+      gatos.value = gatos.value.filter(g => g.id_Gato !== gatoAEliminar.value.id_Gato)
+      mensaje('Gato eliminado correctamente', 'success')
+    } catch (err: any) {
+      mensaje(err.message || 'No se pudo eliminar el gato', 'error')
+    } finally {
+      mostrarConfirmacion.value = false
+    }
+  }
+
+  async function guardarGato() {
+    try {
+      let url = 'http://localhost:5167/api/Gato'
+      let method = 'POST'
+
+      if (formularioGato.value.id_Gato && formularioGato.value.id_Gato !== 0) {
+        url = `http://localhost:5167/api/Gato/${formularioGato.value.id_Gato}`
+        method = 'PUT'
+      }
+
+      const formData = new FormData()
+      formData.append('nombre_Gato', formularioGato.value.nombre_Gato)
+      formData.append('raza', formularioGato.value.raza)
+      formData.append('edad', formularioGato.value.edad.toString())
+      formData.append('sexo', formularioGato.value.sexo)
+      formData.append('esterilizado', formularioGato.value.esterilizado ? 'true' : 'false')
+      formData.append('descripcion_Gato', formularioGato.value.descripcion_Gato || '')
+      if (archivoImagen.value) {
+        formData.append('imagen', archivoImagen.value)
+      }
+      if (idProtectora.value) {
+        formData.append('id_Protectora', idProtectora.value.toString())
+      }
+      formData.append('visible', formularioGato.value.visible ? 'true' : 'false')
+
+      const response = await fetch(url, {
+        method,
+        body: formData
+      })
+
+      if (!response.ok) throw new Error('Error al guardar el gato')
+
+      const gatoGuardado = await response.json()
+
+      if (method === 'POST') {
+        gatos.value.push(gatoGuardado)
+      } else {
+        const index = gatos.value.findIndex(g => g.id_Gato === gatoGuardado.id_Gato)
+        if (index !== -1) gatos.value[index] = gatoGuardado
+      }
+
+      mensaje('Gato guardado correctamente', 'success')
+      mostrarDialogo.value = false
+    } catch (err: any) {
+      mensaje(err.message || 'No se pudo guardar el gato', 'error')
+    }
+  }
+
+  function cambioImagen(e: Event) {
+    const input = e.target as HTMLInputElement
+    if (!input.files || !input.files.length) return
+    const file = input.files[0]
+    archivoImagen.value = file
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      fotoPreview.value = reader.result as string
+    }
+    reader.readAsDataURL(file)
+  }
+
+  function mensaje(texto: string, tipo: 'success' | 'error') {
+    mensajeTexto.value = texto
+    mensajeTipo.value = tipo
+    mensajeSnack.value = true
+  }
+
+  function claseEstado(estado: string) {
+    switch (estado) {
+      case 'Pendiente':
+        return 'orange'
+      case 'Aprobada':
+        return 'green'
+      case 'Rechazada':
+        return 'red'
+      default:
+        return 'grey'
+    }
+  }
+  </script>
 
 
-<template>
-  <v-container fluid class="protectora-admin pa-0">
-    <v-row justify="space-between" align="center" class="mb-4 mx-0">
-      <v-col cols="12" sm="auto" class="text-center text-sm-start px-4">
-        <h1 class="protectora-admin__titulo">Gestión de Gatos - Protectora</h1>
-      </v-col>
-      <v-col cols="12" sm="auto" class="text-center text-sm-start mt-4 mt-sm-0 px-4">
-        <v-btn color="primary" @click="abrirFormulario" class="protectora-admin__boton">Nuevo gato</v-btn>
-      </v-col>
-    </v-row>
+  <template>
+    <v-container fluid class="protectora-admin pa-0">
+      <v-row justify="space-between" align="center" class="mb-4 mx-0">
+        <v-col cols="12" sm="auto" class="text-center text-sm-start px-4">
+          <h1 class="protectora-admin__titulo">Gestión de Gatos - Protectora</h1>
+        </v-col>
+        <v-col cols="12" sm="auto" class="text-center text-sm-start mt-4 mt-sm-0 px-4">
+          <v-btn color="primary" @click="abrirFormulario" class="protectora-admin__boton">Nuevo gato</v-btn>
+        </v-col>
+      </v-row>
 
-    <!-- Tabla responsive -->
-    <div class="protectora-admin__tabla-container px-4">
-      <v-data-table
-        :headers="headers"
-        :items="gatos"
-        class="elevation-1 protectora-admin__tabla"
-        :class="{'protectora-admin__tabla--mobile': $vuetify.display.smAndDown}"
-      >
-      <template v-slot:item.acciones="{ item }">
-          <div class="protectora-admin__acciones">
-            <v-btn color="primary" @click="editarGato(item)" class="mb-2 mb-sm-0 me-sm-2">
-              <v-icon>mdi-pencil</v-icon>
-              <span class="d-none d-sm-inline ms-2">Editar</span>
-            </v-btn>
-            <v-btn color="error" @click="pedirConfirmacion(item)">
-              <v-icon>mdi-delete</v-icon>
-              <span class="d-none d-sm-inline ms-2">Eliminar</span>
-            </v-btn>
-        </div>
-      </template>
-    </v-data-table>
-    </div>
+      <!-- Tabla responsive -->
+      <div class="protectora-admin__tabla-container px-4">
+        <v-data-table
+          :headers="headers"
+          :items="gatos"
+          class="elevation-1 protectora-admin__tabla"
+          density="comfortable"
+          item-value="id_Gato"
+          :items-per-page="10"
+        >
+          <template #item.esterilizado="{ item }">
+            <v-chip :color="item.esterilizado ? 'green' : 'red'" variant="flat" size="small">
+              {{ item.esterilizado ? 'Sí' : 'No' }}
+            </v-chip>
+          </template>
 
-    <!-- Mensaje de confirmación/error -->
-    <v-snackbar
-      v-model="mostrarMensaje"
-      :color="mensajeTipo"
-      :timeout="3000"
-    >
-      {{ mensajeTexto }}
-    </v-snackbar>
+          <template #item.visible="{ item }">
+            <v-chip :color="item.visible ? 'blue' : 'grey'" variant="flat" size="small">
+              {{ item.visible ? 'Sí' : 'No' }}
+            </v-chip>
+          </template>
 
-    <!-- Sección de Solicitudes -->
-    <v-row class="mt-8 mx-0">
-      <v-col cols="12" class="px-4">
-        <h2 class="protectora-admin__subtitulo">Solicitudes de Adopción</h2>
-        <div class="protectora-admin__tabla-container">
-          <v-data-table
-            :headers="[ { title: 'ID', key: 'id_Solicitud', align: 'start' }, { title: 'Gato', key: 'id_Gato' }, { title: 'Solicitante', key: 'id_Usuario' }, { title: 'Estado', key: 'estado' }, { title: 'Fecha', key: 'fecha_Solicitud' }, { title: 'Acciones', key: 'actions', sortable: false, align: 'end' } ]"
-            :items="solicitudes"
-            class="elevation-1 protectora-admin__tabla mt-4"
-            :class="{'protectora-admin__tabla--mobile': $vuetify.display.smAndDown}"
-          >
-            <template v-slot:item.id_Gato="{ item }">
-              {{ nombresGatos.get(item.id_Gato) || 'Cargando...' }}
-            </template>
+          <template #item.acciones="{ item }">
+            <v-btn icon="mdi-pencil" size="small" class="mr-2" @click="editarGato(item)"></v-btn>
+            <v-btn icon="mdi-delete" size="small" color="error" @click="confirmarEliminar(item)"></v-btn>
+          </template>
 
-            <template v-slot:item.id_Usuario="{ item }">
-              {{ nombresUsuarios.get(item.id_Usuario) || 'Cargando...' }}
-            </template>
+          <template #no-data>
+            <div class="text-center pa-6">No hay gatos registrados para esta protectora.</div>
+          </template>
+        </v-data-table>
+      </div>
 
-            <template v-slot:item.fecha_Solicitud="{ item }">
-              {{ new Date(item.fecha_Solicitud).toLocaleDateString() }}
-            </template>
-            
-            <template v-slot:item.estado="{ item }">
-              <v-chip
-                :color="getEstadoColor(item.estado)"
-                text-color="white"
-                size="small"
-              >
-                {{ item.estado }}
-              </v-chip>
-            </template>
+      <v-container fluid class="protectora-admin__solicitudes px-4">
+        <h2 class="protectora-admin__subtitulo">Solicitudes de adopción</h2>
+        <v-data-table
+          :headers="headersSolicitudes"
+          :items="solicitudes"
+          class="elevation-1 protectora-admin__tabla"
+          density="comfortable"
+          item-value="id_Solicitud"
+          :items-per-page="10"
+        >
+          <template #item.fecha_Solicitud="{ item }">
+            {{ new Date(item.fecha_Solicitud).toLocaleDateString() }}
+          </template>
 
-            <template v-slot:item.actions="{ item }">
-              <div class="protectora-admin__acciones">
-                <v-dialog v-model="item.showDialog" max-width="500px">
-                  <template v-slot:activator="{ props }">
-                    <v-btn
-                      color="primary"
-                      v-bind="props"
-                      class="protectora-admin__boton"
-                      @click="cargarSolicitud(item.id_Solicitud)"
-                    >
-                      <v-icon>mdi-cog</v-icon>
-                      <span class="d-none d-sm-inline ms-2">Gestionar</span>
-                    </v-btn>
-                  </template>
+          <template #item.estado="{ item }">
+            <v-chip :color="claseEstado(item.estado)" variant="flat" size="small">
+              {{ item.estado }}
+            </v-chip>
+          </template>
 
-                  <v-card class="protectora-admin__dialogo">
-                    <v-card-title class="protectora-admin__dialogo-titulo">
-                      Gestionar Solicitud
-                    </v-card-title>
-                    <v-card-text class="protectora-admin__dialogo-contenido">
-                      <!-- Información Personal -->
-                      <h3 class="mb-4">Información Personal</h3>
-                      <v-row>
-                        <v-col cols="12" sm="6">
-                          <v-text-field
-                            :model-value="solicitud?.nombreCompleto"
-                            label="Nombre completo"
-                            readonly
-                            variant="outlined"
-                            density="comfortable"
-                          ></v-text-field>
-                        </v-col>
-                        <v-col cols="12" sm="6">
-                          <v-text-field
-                            :model-value="solicitud?.edad"
-                            label="Edad"
-                            readonly
-                            variant="outlined"
-                            density="comfortable"
-                          ></v-text-field>
-                        </v-col>
-                      </v-row>
-                      <v-row>
-                        <v-col cols="12">
-                          <v-text-field
-                            :model-value="solicitud?.direccion"
-                            label="Dirección"
-                            readonly
-                            variant="outlined"
-                            density="comfortable"
-                          ></v-text-field>
-                        </v-col>
-                      </v-row>
-                      <v-row>
-                        <v-col cols="12" sm="6">
-                          <v-text-field
-                            :model-value="solicitud?.telefono"
-                            label="Teléfono"
-                            readonly
-                            variant="outlined"
-                            density="comfortable"
-                          ></v-text-field>
-                        </v-col>
-                        <v-col cols="12" sm="6">
-                          <v-text-field
-                            :model-value="solicitud?.email"
-                            label="Email"
-                            readonly
-                            variant="outlined"
-                            density="comfortable"
-                          ></v-text-field>
-                        </v-col>
-                      </v-row>
+          <template #item.acciones="{ item }">
+            <v-menu>
+              <template #activator="{ props }">
+                <v-btn v-bind="props" icon="mdi-dots-vertical" size="small"></v-btn>
+              </template>
+              <v-list>
+                <v-list-item @click="solicitudesStore.verSolicitud(item)">
+                  <v-list-item-title>Ver</v-list-item-title>
+                </v-list-item>
+                <v-list-item @click="solicitudesStore.abrirActualizar(item)">
+                  <v-list-item-title>Actualizar estado</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+          </template>
 
-                      <!-- Información de Vivienda -->
-                      <h3 class="mb-4 mt-6">Información de Vivienda</h3>
-                      <v-row>
-                        <v-col cols="12" sm="6">
-                          <v-text-field
-                            :model-value="solicitud?.tipoVivienda"
-                            label="Tipo de vivienda"
-                            readonly
-                            variant="outlined"
-                            density="comfortable"
-                          ></v-text-field>
-                        </v-col>
-                        <v-col cols="12" sm="6">
-                          <v-text-field
-                            :model-value="solicitud?.propiedadAlquiler"
-                            label="Propiedad/Alquiler"
-                            readonly
-                            variant="outlined"
-                            density="comfortable"
-                          ></v-text-field>
-                        </v-col>
-                      </v-row>
-                      <v-row>
-                        <v-col cols="12" sm="6">
-                          <v-checkbox
-                            :model-value="solicitud?.permiteAnimales"
-                            label="¿Se permiten animales?"
-                            readonly
-                            disabled
-                          ></v-checkbox>
-                        </v-col>
-                        <v-col cols="12" sm="6">
-                          <v-text-field
-                            :model-value="solicitud?.numeroPersonas"
-                            label="Número de personas"
-                            readonly
-                            variant="outlined"
-                            density="comfortable"
-                          ></v-text-field>
-                        </v-col>
-                      </v-row>
-                      <v-row v-if="solicitud?.hayNinos">
-                        <v-col cols="12">
-                          <v-text-field
-                            :model-value="solicitud?.edadesNinos"
-                            label="Edades de los niños"
-                            readonly
-                            variant="outlined"
-                            density="comfortable"
-                          ></v-text-field>
-                        </v-col>
-                      </v-row>
+          <template #no-data>
+            <div class="text-center pa-6">No hay solicitudes registradas para esta protectora.</div>
+          </template>
+        </v-data-table>
+      </v-container>
 
-                      <!-- Experiencia con Mascotas -->
-                      <h3 class="mb-4 mt-6">Experiencia con Mascotas</h3>
-                      <v-row>
-                        <v-col cols="12" sm="6">
-                          <v-checkbox
-                            :model-value="solicitud?.experienciaGatos"
-                            label="¿Tiene experiencia con gatos?"
-                            readonly
-                            disabled
-                          ></v-checkbox>
-                        </v-col>
-                        <v-col cols="12" sm="6">
-                          <v-checkbox
-                            :model-value="solicitud?.tieneOtrosAnimales"
-                            label="¿Tiene otros animales?"
-                            readonly
-                            disabled
-                          ></v-checkbox>
-                        </v-col>
-                      </v-row>
-                      <v-row>
-                        <v-col cols="12" sm="6">
-                          <v-checkbox
-                            :model-value="solicitud?.cortarUnas"
-                            label="¿Sabe cortar uñas?"
-                            readonly
-                            disabled
-                          ></v-checkbox>
-                        </v-col>
-                        <v-col cols="12" sm="6">
-                          <v-checkbox
-                            :model-value="solicitud?.animalesVacunadosEsterilizados"
-                            label="¿Animales vacunados/esterilizados?"
-                            readonly
-                            disabled
-                          ></v-checkbox>
-                        </v-col>
-                      </v-row>
-                      <v-row>
-                        <v-col cols="12">
-                          <v-textarea
-                            :model-value="solicitud?.historialMascotas"
-                            label="Historial con mascotas"
-                            readonly
-                            variant="outlined"
-                            density="comfortable"
-                            auto-grow
-                            rows="3"
-                          ></v-textarea>
-                        </v-col>
-                      </v-row>
+      <v-dialog v-model="mostrarDialogo" max-width="700">
+        <v-card class="protectora-admin__dialogo">
+          <v-card-title>Gato</v-card-title>
+          <v-card-text>
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-text-field v-model="formularioGato.nombre_Gato" label="Nombre" variant="outlined" density="comfortable"></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field v-model="formularioGato.raza" label="Raza" variant="outlined" density="comfortable"></v-text-field>
+              </v-col>
+            </v-row>
 
-                      <!-- Compromiso y Responsabilidad -->
-                      <h3 class="mb-4 mt-6">Compromiso y Responsabilidad</h3>
-                      <v-row>
-                        <v-col cols="12">
-                          <v-textarea
-                            :model-value="solicitud?.motivacionAdopcion"
-                            label="Motivación para adoptar"
-                            readonly
-                            variant="outlined"
-                            density="comfortable"
-                            auto-grow
-                            rows="3"
-                          ></v-textarea>
-                        </v-col>
-                      </v-row>
-                      <v-row>
-                        <v-col cols="12">
-                          <v-textarea
-                            :model-value="solicitud?.problemasComportamiento"
-                            label="Plan ante problemas de comportamiento"
-                            readonly
-                            variant="outlined"
-                            density="comfortable"
-                            auto-grow
-                            rows="3"
-                          ></v-textarea>
-                        </v-col>
-                      </v-row>
-                      <v-row>
-                        <v-col cols="12">
-                          <v-textarea
-                            :model-value="solicitud?.enfermedadesCostosas"
-                            label="Plan ante enfermedades costosas"
-                            readonly
-                            variant="outlined"
-                            density="comfortable"
-                            auto-grow
-                            rows="3"
-                          ></v-textarea>
-                        </v-col>
-                      </v-row>
-                      <v-row>
-                        <v-col cols="12">
-                          <v-textarea
-                            :model-value="solicitud?.vacaciones"
-                            label="Plan para vacaciones"
-                            readonly
-                            variant="outlined"
-                            density="comfortable"
-                            auto-grow
-                            rows="3"
-                          ></v-textarea>
-                        </v-col>
-                      </v-row>
-                      <v-row>
-                        <v-col cols="12" sm="6">
-                          <v-checkbox
-                            :model-value="solicitud?.seguimientoPostAdopcion"
-                            label="¿Acepta seguimiento post-adopción?"
-                            readonly
-                            disabled
-                          ></v-checkbox>
-                        </v-col>
-                        <v-col cols="12" sm="6">
-                          <v-checkbox
-                            :model-value="solicitud?.visitaHogar"
-                            label="¿Acepta visita al hogar?"
-                            readonly
-                            disabled
-                          ></v-checkbox>
-                        </v-col>
-                      </v-row>
+            <v-row>
+              <v-col cols="12" sm="4">
+                <v-text-field v-model="formularioGato.edad" label="Edad" type="number" variant="outlined" density="comfortable"></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="4">
+                <v-select
+                  v-model="formularioGato.sexo"
+                  :items="['Macho', 'Hembra']"
+                  label="Sexo"
+                  variant="outlined"
+                  density="comfortable"
+                ></v-select>
+              </v-col>
+              <v-col cols="12" sm="4">
+                <v-switch
+                  v-model="formularioGato.esterilizado"
+                  label="Esterilizado"
+                  inset
+                  color="primary"
+                ></v-switch>
+              </v-col>
+            </v-row>
 
-                      <!-- Gestión de la Solicitud -->
-                      <h3 class="mb-4 mt-6">Gestión de la Solicitud</h3>
-                      <v-select
-                        v-model="nuevoEstado"
-                        :items="[ { value: 'pendiente', text: 'Pendiente' }, { value: 'aprobada', text: 'Aprobar solicitud' }, { value: 'rechazada', text: 'Rechazar solicitud' } ]"
-                        item-title="text"
-                        item-value="value"
-                        label="Nuevo Estado"
-                        :rules="reglas.estado"
-                        class="mb-4"
-                        required
-                      ></v-select>
-                      
-                      <v-textarea
-                        v-model="comentarioProtectora"
-                        label="Comentario de la Protectora"
-                        rows="3"
-                        :rules="reglas.comentario"
-                        class="mb-4"
-                        required
-                      ></v-textarea>
-                    </v-card-text>
-                    
-                    <v-card-actions class="protectora-admin__dialogo-acciones">
-                      <v-spacer></v-spacer>
-                      <v-btn
-                        color="grey"
-                        @click="item.showDialog = false"
-                        class="me-2"
-                      >
-                        Cancelar
-                      </v-btn>
-                      <v-btn
-                        color="success"
-                        @click="() => actualizarEstado(item)"
-                        :disabled="!nuevoEstado || !comentarioProtectora"
-                      >
-                        Guardar
-                      </v-btn>
-                    </v-card-actions>
-                  </v-card>
-                </v-dialog>
+            <v-row>
+              <v-col cols="12">
+                <v-textarea
+                  v-model="formularioGato.descripcion_Gato"
+                  label="Descripción"
+                  variant="outlined"
+                  density="comfortable"
+                  auto-grow
+                  rows="3"
+                ></v-textarea>
+              </v-col>
+            </v-row>
+
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-file-input
+                  label="Imagen del gato"
+                  accept="image/*"
+                  variant="outlined"
+                  density="comfortable"
+                  @change="cambioImagen"
+                ></v-file-input>
+              </v-col>
+              <v-col cols="12" sm="6" class="d-flex justify-center align-center">
+                <v-avatar size="120" v-if="fotoPreview">
+                  <v-img :src="fotoPreview" alt="Preview"></v-img>
+                </v-avatar>
+                <div v-else class="text-caption">Sin imagen</div>
+              </v-col>
+            </v-row>
+
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-switch
+                  v-model="formularioGato.visible"
+                  label="Visible"
+                  inset
+                  color="primary"
+                ></v-switch>
+              </v-col>
+            </v-row>
+          </v-card-text>
+          <v-card-actions class="justify-end">
+            <v-btn variant="text" @click="mostrarDialogo = false">Cancelar</v-btn>
+            <v-btn color="primary" @click="guardarGato">Guardar</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <v-dialog v-model="mostrarConfirmacion" max-width="500">
+        <v-card>
+          <v-card-title>Confirmar eliminación</v-card-title>
+          <v-card-text>¿Seguro que deseas eliminar este gato?</v-card-text>
+          <v-card-actions class="justify-end">
+            <v-btn variant="text" @click="mostrarConfirmacion = false">Cancelar</v-btn>
+            <v-btn color="error" @click="eliminarGato">Eliminar</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <v-snackbar v-model="mensajeSnack" :timeout="3000" :color="mensajeTipo">
+        {{ mensajeTexto }}
+      </v-snackbar>
+
+      <v-dialog v-model="solicitudesStore.dialogoVer" max-width="900">
+        <v-card class="solicitud-detalle">
+          <v-card-title class="solicitud-detalle__titulo">Solicitud de adopción</v-card-title>
+          <v-card-text class="solicitud-detalle__contenido">
+            <v-row>
+              <v-col cols="12" md="6">
+                <h3>Datos del solicitante</h3>
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.nombre_Usuario" label="Nombre" readonly variant="outlined" density="comfortable"></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.apellido_Usuario" label="Apellido" readonly variant="outlined" density="comfortable"></v-text-field>
+                  </v-col>
+                </v-row>
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.email_Usuario" label="Email" readonly variant="outlined" density="comfortable"></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.telefono_Usuario" label="Teléfono" readonly variant="outlined" density="comfortable"></v-text-field>
+                  </v-col>
+                </v-row>
+
+                <h3 class="mt-6">Dirección</h3>
+                <v-row>
+                  <v-col cols="12" sm="8">
+                    <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.direccion" label="Dirección" readonly variant="outlined" density="comfortable"></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="4">
+                    <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.ciudad" label="Ciudad" readonly variant="outlined" density="comfortable"></v-text-field>
+                  </v-col>
+                </v-row>
+                <v-row>
+                  <v-col cols="12" sm="4">
+                    <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.provincia" label="Provincia" readonly variant="outlined" density="comfortable"></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="4">
+                    <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.codigo_Postal" label="Código Postal" readonly variant="outlined" density="comfortable"></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="4">
+                    <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.pais" label="País" readonly variant="outlined" density="comfortable"></v-text-field>
+                  </v-col>
+                </v-row>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <h3>Datos del gato</h3>
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.nombre_Gato" label="Nombre" readonly variant="outlined" density="comfortable"></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.raza_Gato" label="Raza" readonly variant="outlined" density="comfortable"></v-text-field>
+                  </v-col>
+                </v-row>
+                <v-row>
+                  <v-col cols="12" sm="4">
+                    <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.edad_Gato" label="Edad" readonly variant="outlined" density="comfortable"></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="4">
+                    <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.sexo_Gato" label="Sexo" readonly variant="outlined" density="comfortable"></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="4">
+                    <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.esterilizado_Gato ? 'Sí' : 'No'" label="Esterilizado" readonly variant="outlined" density="comfortable"></v-text-field>
+                  </v-col>
+                </v-row>
+                <v-row>
+                  <v-col cols="12">
+                    <v-textarea :model-value="solicitudesStore.solicitudSeleccionada?.descripcion_Gato" label="Descripción" readonly variant="outlined" density="comfortable" auto-grow rows="3"></v-textarea>
+                  </v-col>
+                </v-row>
+                <v-row>
+                  <v-col cols="12" class="d-flex justify-center">
+                    <v-avatar size="120">
+                      <v-img :src="solicitudesStore.solicitudSeleccionada?.imagen_Gato" alt="Gato"></v-img>
+                    </v-avatar>
+                  </v-col>
+                </v-row>
+              </v-col>
+            </v-row>
+
+            <h3 class="mb-4 mt-6">Compromiso y Responsabilidad</h3>
+            <v-row>
+              <v-col cols="12">
+                <v-textarea :model-value="solicitudesStore.solicitudSeleccionada?.motivacionAdopcion" label="Motivación para adoptar" readonly variant="outlined" density="comfortable" auto-grow rows="3"></v-textarea>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.tiempoDisponible" label="Tiempo disponible al día" readonly variant="outlined" density="comfortable"></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.gastosEstimados" label="Gastos estimados mensuales (€)" readonly variant="outlined" density="comfortable"></v-text-field>
+              </v-col>
+            </v-row>
+
+            <h3 class="mb-4 mt-6">Otros Animales en el Hogar</h3>
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.otrosAnimales" label="¿Hay otros animales?" readonly variant="outlined" density="comfortable"></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.tipoOtrosAnimales" label="Tipo de animales" readonly variant="outlined" density="comfortable"></v-text-field>
+              </v-col>
+            </v-row>
+
+            <h3 class="mb-4 mt-6">Vivienda y Seguridad</h3>
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.tipoVivienda" label="Tipo de vivienda" readonly variant="outlined" density="comfortable"></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.jardinPatio" label="¿Hay jardín o patio?" readonly variant="outlined" density="comfortable"></v-text-field>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-checkbox :model-value="solicitudesStore.solicitudSeleccionada?.ventanasSeguras" label="¿Tiene ventanas seguras?" readonly disabled></v-checkbox>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-checkbox :model-value="solicitudesStore.solicitudSeleccionada?.vallasSeguras" label="¿Tiene vallas seguras?" readonly disabled></v-checkbox>
+              </v-col>
+            </v-row>
+
+            <h3 class="mb-4 mt-6">Experiencia y Convivencia</h3>
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.experienciaConGatos" label="Experiencia con gatos" readonly variant="outlined" density="comfortable"></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.alergiasHogar" label="Alergias en el hogar" readonly variant="outlined" density="comfortable"></v-text-field>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.personasEnCasa" label="Número de personas en casa" readonly variant="outlined" density="comfortable"></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.ninosEnCasa" label="¿Hay niños en casa?" readonly variant="outlined" density="comfortable"></v-text-field>
+              </v-col>
+            </v-row>
+
+            <h3 class="mb-4 mt-6">Seguimiento</h3>
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-checkbox :model-value="solicitudesStore.solicitudSeleccionada?.seguimientoPostAdopcion" label="¿Acepta seguimiento post-adopción?" readonly disabled></v-checkbox>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-checkbox :model-value="solicitudesStore.solicitudSeleccionada?.visitaHogar" label="¿Acepta visita al hogar?" readonly disabled></v-checkbox>
+              </v-col>
+            </v-row>
+          </v-card-text>
+          <v-card-actions class="justify-end">
+            <v-btn variant="text" @click="solicitudesStore.cerrarVer()">Cerrar</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <v-dialog v-model="solicitudesStore.dialogoActualizar" max-width="600">
+        <v-card>
+          <v-card-title>Actualizar estado</v-card-title>
+          <v-card-text>
+            <v-form @submit.prevent="solicitudesStore.actualizarEstado({ estado: nuevoEstado, comentario: comentarioProtectora })">
+              <v-select v-model="nuevoEstado" :items="['Pendiente', 'Aprobada', 'Rechazada', 'Completada']" label="Estado" :rules="reglas.estado" variant="outlined" density="comfortable"></v-select>
+              <v-textarea v-model="comentarioProtectora" label="Comentario" :rules="reglas.comentario" variant="outlined" density="comfortable"></v-textarea>
+              <div class="text-right">  
+                <v-btn color="primary" type="submit">Guardar</v-btn>
               </div>
-            </template>
-          </v-data-table>
-        </div>
-      </v-col>
-    </v-row>
-  
-    <!-- Formulario de creación/edición -->
-    <v-dialog v-model="mostrarDialogo" max-width="600px">
-      <v-card class="protectora-admin__dialogo">
-        <v-card-title>{{ gato.id_Gato ? 'Editar Gato' : 'Nuevo Gato' }}</v-card-title>
+            </v-form>
+          </v-card-text>
+          <v-card-actions class="justify-end">
+            <v-btn variant="text" @click="solicitudesStore.cerrarActualizar()">Cancelar</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Gráfica al final -->
+      <v-card class="mb-6 mx-4" elevation="2">
+        <v-card-title>Historial de adopciones</v-card-title>
         <v-card-text>
-          <v-form ref="formularioGato">
-            <v-text-field
-              v-model="gato.nombre_Gato"
-              label="Nombre del gato"
-              :rules="[v => !!v || 'Campo obligatorio']"
-            />
-            <v-text-field
-              v-model="gato.raza"
-              label="Raza"
-              :rules="[v => !!v || 'Campo obligatorio']"
-            />
-            <v-text-field
-              v-model="gato.edad"
-              label="Edad"
-              type="number"
-              :rules="[v => v > 0 || 'Debe ser mayor que 0']"
-            />
-            <v-select
-              v-model="gato.sexo"
-              :items="['Macho', 'Hembra']"
-              label="Sexo"
-              :rules="[v => !!v || 'Campo obligatorio']"
-            />
-            <v-checkbox v-model="gato.esterilizado" label="Esterilizado" />
-            <v-textarea
-              v-model="gato.descripcion_Gato"
-              label="Descripción en Español"
-              :rules="[v => !!v || 'Campo obligatorio']"
-            />
-            <v-textarea
-              v-model="gato.descripcion_Gato_En"
-              label="Descripción en Inglés"
-              :rules="[v => !!v || 'Campo obligatorio']"
-            />
-            <v-text-field
-              v-model="gato.imagen_Gato"
-              label="URL de imagen"
-              :rules="[v => !!v || 'Campo obligatorio']"
-            />
-            <v-checkbox v-model="gato.visible" label="Visible públicamente" />
-          </v-form>
+          <div v-if="cargandoGrafica">Cargando…</div>
+          <div v-else-if="errorGrafica">{{ errorGrafica }}</div>
+          <GraficaHistorialAdopciones v-else :items="serieGrafica" :monthsBack="12" title="Últimos 12 meses" />
         </v-card-text>
-        <v-card-actions>
-          <v-btn color="grey" @click="cerrarDialogo">Cancelar</v-btn>
-          <v-btn color="green" @click="guardarGato">Guardar</v-btn>
-        </v-card-actions>
       </v-card>
-    </v-dialog>
+    </v-container>
+  </template>
 
-    <!-- Confirmación para eliminar -->
-    <v-dialog v-model="mostrarConfirmacion" max-width="500px">
-      <v-card class="protectora-admin__dialogo">
-        <v-card-title class="protectora-admin__dialogo-titulo">
-          Confirmar eliminación
-        </v-card-title>
-        <v-card-text class="py-4">
-          ¿Estás seguro que quieres eliminar a <strong>{{ gatoAEliminar?.nombre_Gato }}</strong>?
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="grey" @click="mostrarConfirmacion = false" class="me-2">Cancelar</v-btn>
-          <v-btn color="error" @click="confirmarEliminacion">Eliminar</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-  </v-container>
-</template>
-  
-<style scoped lang="scss">
-.protectora-admin {
-  width: 100%;
-  margin: 0 auto;
-  margin-bottom: $espacio-grande;
+  <style scoped lang="scss">
+  $color-fondo: #f8f9fb;
+  $color-texto: #1e293b;
+  $color-primario: #FF5500;
+  $color-secundario: #FB7C3C;
+  $color-borde: #e2e8f0;
+  $color-muted: #64748b;
+  $color-tarjeta: #ffffff;
+  $color-blanco: #ffffff;
 
-  &__titulo {
-    font-size: 1.25rem;
-    color: $color-principal;
-    margin: $espacio-mediano 0;
-    text-align: center;
+  .protectora-admin {
+    background-color: $color-fondo;
+    color: $color-texto;
 
-    @media (min-width: 600px) {
-      font-size: 2rem;
-      text-align: left;
-      margin-bottom: $espacio-grande;
-    }
-  }
-
-  &__subtitulo {
-    font-size: 1.1rem;
-    color: $color-principal;
-    margin: $espacio-mediano 0;
-    text-align: center;
-
-    @media (min-width: 600px) {
-      font-size: 1.8rem;
-      text-align: left;
-    }
-  }
-
-  &__tabla-container {
-    overflow-x: auto;
-    width: 100%;
-    -webkit-overflow-scrolling: touch;
-    margin: 0;
-    padding: 0;
-
-    :deep(.v-data-table) {
-      width: 100%;
-      font-size: 0.875rem;
-      border-radius: 0;
-
-      @media (min-width: 600px) {
-        font-size: 1rem;
-        border-radius: $espacio-pequeno;
-      }
+    &__titulo {
+      font-weight: 700;
+      font-size: 1.5rem;
     }
 
-    :deep(.v-data-table-header) {
-      th {
-        padding: 12px 16px !important;
-        font-size: 0.875rem !important;
-        height: 48px !important;
-        background-color: $color-blanco;
-      }
+    &__subtitulo {
+      font-weight: 600;
+      font-size: 1.25rem;
+      margin: 1rem 0 0.5rem 0;
     }
 
-    :deep(.v-data-table__wrapper) {
-      td {
-        padding: 12px 16px !important;
-        font-size: 0.875rem !important;
-        height: 48px !important;
-      }
-    }
-  }
-
-  &__tabla {
-    width: 100%;
-    background-color: $color-blanco;
-    box-shadow: none;
-    border: 1px solid rgba(0, 0, 0, 0.12);
-
-    @media (min-width: 600px) {
-      box-shadow: $sombra-contenedor;
-    }
-
-    &--mobile {
-      :deep(.v-data-table__wrapper) {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        width: 100%;
-        margin: 0;
-        padding: 0;
-        
-        table {
-          width: 100%;
-          min-width: 500px;
-        }
-      }
-
-      :deep(th), :deep(td) {
-        white-space: nowrap;
-        min-width: 100px;
-        padding: 12px 16px !important;
-      }
-
-      :deep(td:first-child), :deep(th:first-child) {
-        padding-left: 16px !important;
-      }
-
-      :deep(td:last-child), :deep(th:last-child) {
-        padding-right: 16px !important;
-      }
-    }
-  }
-
-  &__acciones {
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 0;
-
-    .v-btn {
-      min-width: 40px !important;
-      padding: 0 12px !important;
-      height: 36px !important;
-
-      @media (min-width: 600px) {
-        min-width: 64px !important;
-        padding: 0 16px !important;
-      }
-    }
-  }
-
-  &__boton {
-    width: auto;
-    min-width: 120px !important;
-    height: 36px !important;
-    font-size: 0.875rem !important;
-
-    @media (min-width: 600px) {
-      height: 40px !important;
-      font-size: 1rem !important;
-    }
-  }
-
-  &__dialogo {
-    margin: 8px;
-    width: auto;
-    max-height: 90vh;
-    overflow-y: auto;
-
-    @media (min-width: 600px) {
-      margin: 0;
-      min-width: 600px;
-    }
-
-    &-titulo {
-      background-color: $color-principal;
+    &__boton {
+      background: linear-gradient(90deg, $color-primario, $color-secundario);
       color: $color-blanco;
-      padding: 16px 20px;
-      font-size: 1.2rem;
-      position: sticky;
-      top: 0;
-      z-index: 1;
+      font-weight: 600;
     }
 
-    &-contenido {
-      padding: 24px 20px;
+    &__tabla-container {
+      background: $color-tarjeta;
+      border: 1px solid $color-borde;
+      border-radius: 12px;
+      padding: 8px 0 0 0;
+      margin-bottom: 24px;
 
-      h3 {
-        color: $color-principal;
-        font-size: 1.1rem;
-        font-weight: 500;
-        border-bottom: 2px solid $color-principal;
-        padding-bottom: 8px;
+      :deep(.v-table) {
+        border-radius: 12px;
+      }
+    }
+
+    &__tabla {
+      :deep(thead th) {
+        font-weight: 700;
+        color: $color-muted;
       }
 
-      :deep(.v-input) {
-        margin-bottom: 12px;
+      :deep(tbody td) {
+        vertical-align: middle;
+      }
+    }
+
+    &__dialogo {
+      :deep(.v-card-title) {
+        font-weight: 700;
+      }
+    }
+
+    &__solicitudes {
+      background: $color-tarjeta;
+      border: 1px solid $color-borde;
+      border-radius: 12px;
+      padding: 8px 0 0 0;
+      margin-bottom: 24px;
+
+      :deep(.v-table) {
+        border-radius: 12px;
+      }
+
+      :deep(thead th) {
+        font-weight: 700;
+        color: $color-muted;
+      }
+
+      :deep(tbody td) {
+        vertical-align: middle;
+      }
+    }
+  }
+
+  .solicitud-detalle {
+    &__titulo {
+      font-weight: 700;
+      font-size: 1.25rem;
+    }
+
+    &__contenido {
+      h3 {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: .5rem;
       }
 
       :deep(.v-text-field) {
@@ -899,81 +815,14 @@ function getEstadoColor(estado: string) {
       }
 
       :deep(.v-checkbox) {
-        &.v-checkbox--readonly {
-          opacity: 0.7;
+        .v-label {
+          opacity: 1;
         }
-      }
-
-      :deep(.v-label) {
-        font-size: 0.875rem;
-        opacity: 0.8;
-      }
-
-      .v-row {
-        margin: 0 -12px;
-      }
-
-      .v-col {
-        padding: 12px;
-      }
-    }
-
-    &-acciones {
-      padding: 16px 20px;
-      display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-      border-top: 1px solid rgba(0, 0, 0, 0.12);
-      background-color: #f5f5f5;
-      position: sticky;
-      bottom: 0;
-      z-index: 1;
-    }
-  }
-
-  @media (prefers-color-scheme: dark) {
-    &__dialogo {
-      background-color: #272727;
-
-      &-contenido {
-        h3 {
-          border-bottom-color: $color-principal;
-        }
-
-        :deep(.v-text-field--readonly) {
-          .v-field__input {
-            color: rgba(255, 255, 255, 0.7);
-          }
-        }
-
-        :deep(.v-textarea--readonly) {
-          .v-field__input {
-            color: rgba(255, 255, 255, 0.7);
-          }
-        }
-      }
-
-      &-acciones {
-        background-color: #1e1e1e;
-        border-top-color: rgba(255, 255, 255, 0.12);
       }
     }
   }
 
-  @media (min-width: 960px) {
-    max-width: 1200px;
-    padding: $espacio-grande;
-    margin-top: 95px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
   .protectora-admin {
-    &__tabla {
-      background-color: #272727;
-      color: $color-blanco;
-    }
-
     &__dialogo {
       background-color: #272727;
       color: $color-blanco;
@@ -985,5 +834,4 @@ function getEstadoColor(estado: string) {
       }
     }
   }
-}
-</style>
+  </style>
