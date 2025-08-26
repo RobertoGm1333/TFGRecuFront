@@ -267,28 +267,33 @@ onMounted(async () => {
 <template>
   <v-container fluid class="px-4">
     <!-- Encabezado + acciones -->
-    <v-row class="mb-4" align="center" justify="space-between">
+    <v-row class="mb-4 header-row" align="center" justify="space-between">
       <v-col cols="12" sm="auto">
-        <h1 class="text-h5 font-weight-bold">Gestión de Adopciones</h1>
+        <h1 class="section-title">Gestión de Adopciones</h1>
       </v-col>
-      <v-col cols="12" sm="6" class="d-flex gap-3 align-center">
-        <v-select
-          v-model.number="protectoraId"
-          :items="[{ title: 'Todas las protectoras', value: 0 }, ...protectorAs.map(p => ({ title: p.nombre_Protectora, value: p.id_Protectora }))]"
-          label="Filtrar por protectora"
-          density="comfortable"
-          variant="outlined"
-          hide-details
-        />
-        <v-btn color="primary" variant="tonal" prepend-icon="mdi-plus" @click="openCrear">Nueva adopción</v-btn>
+      <v-col cols="12" sm="6" class="d-flex gap-3 align-center header-actions">
+        <v-btn color="primary" variant="elevated" class="nuevo-btn" prepend-icon="mdi-plus" @click="openCrear">Nueva adopción</v-btn>
       </v-col>
     </v-row>
 
     <v-card class="admin-card" elevation="2">
-      <v-tabs v-model="tab" class="px-4">
-        <v-tab value="listado">LISTADO</v-tab>
-        <v-tab value="grafica">GRÁFICA</v-tab>
-      </v-tabs>
+      <!-- Tabs + Filtro alineados en la misma barra -->
+      <div class="card-controls px-4">
+        <v-tabs v-model="tab">
+          <v-tab value="listado">LISTADO</v-tab>
+          <v-tab value="grafica">GRÁFICA</v-tab>
+        </v-tabs>
+
+        <v-select
+          v-model.number="protectoraId"
+          :items="[{ title: 'Todas las protectoras', value: 0 }, ...protectorAs.map(p => ({ title: p.nombre_Protectora, value: p.id_Protectora }))]"
+          label="Filtrar por protectora"
+          density="compact"
+          variant="outlined"
+          hide-details
+          class="filter-protectora ms-auto"
+        />
+      </div>
 
       <v-window v-model="tab">
         <!-- LISTADO -->
@@ -322,8 +327,12 @@ onMounted(async () => {
                 </template>
 
                 <template #item.acciones="{ item }">
-                  <v-btn icon="mdi-pencil" size="small" class="mr-2" @click="openEditar(item)" />
-                  <v-btn icon="mdi-delete" size="small" color="error" @click="borrar(item)" />
+                  <v-btn icon color="blue" class="mr-2" size="small" @click="openEditar(item)">
+                    <v-icon>mdi-pencil</v-icon>
+                  </v-btn>
+                  <v-btn icon color="red" size="small" @click="borrar(item)">
+                    <v-icon>mdi-delete</v-icon>
+                  </v-btn>
                 </template>
 
                 <template #no-data>
@@ -438,6 +447,40 @@ onMounted(async () => {
   border-radius: 12px;
 }
 
+/* Cabecera coherente con Gestión de Gatos */
+.section-title {
+  color: #FF5500;
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 1.2;
+}
+
+.header-row {
+  margin-top: 8px;
+}
+
+.header-actions {
+  justify-content: flex-end;
+}
+
+.nuevo-btn {
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* Barra de pestañas + filtro dentro del card */
+.card-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 10px;
+}
+
+.filter-protectora {
+  max-width: 320px;
+}
+
+/* Tabla */
 .tabla-wrapper {
   width: 100%;
   overflow-x: auto;
@@ -453,4 +496,3 @@ onMounted(async () => {
   white-space: nowrap;
 }
 </style>
- 
