@@ -57,14 +57,11 @@ const chatSending = ref(false)
 const chatMessages = ref<ChatMsg[]>([])
 const chatBox = ref<HTMLElement | null>(null)
 
+/* Reiniciamos siempre al cargar */
 const chatLoad = () => {
-  const raw = localStorage.getItem('chatbox_state')
-  if (!raw) return
-  try {
-    const { open, messages } = JSON.parse(raw)
-    chatOpen.value = !!open
-    chatMessages.value = Array.isArray(messages) ? messages : []
-  } catch {}
+  try { localStorage.removeItem('chatbox_state') } catch {}
+  chatOpen.value = false
+  chatMessages.value = []
 }
 
 const chatSave = () => {
@@ -132,9 +129,9 @@ onMounted(() => {
       <span>IA</span>
     </button>
     <div v-if="chatOpen" class="chatbox__panel">
-      <div class="chatbox__header">
+      <div class="chatbox__header" @click="chatClosePanel">
         <span>Catherine</span>
-        <button class="chatbox__close" @click="chatClosePanel" aria-label="Cerrar chat">✕</button>
+        
       </div>
       <div class="chatbox__messages" ref="chatBox">
         <div v-for="(m,i) in chatMessages" :key="i" class="chatbox__msg" :data-role="m.role">
@@ -249,6 +246,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  cursor: pointer; /* Ahora toda la barra es clickable */
+  user-select: none;
 }
 
 .chatbox__close {
@@ -258,6 +257,7 @@ onMounted(() => {
   font-size: 20px;
   cursor: pointer;
   line-height: 1;
+  pointer-events: none; /* la X ya no intercepta el clic */
 }
 
 .chatbox__messages {

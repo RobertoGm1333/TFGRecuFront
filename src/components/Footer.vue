@@ -25,7 +25,7 @@ const { t } = useI18n();
     </div>
 
     <div class="footer__credits">
-      <p>{{ t('desarrollado_por') }} Roberto Gómez y Daniel Santamaría</p>
+      <p>{{ t('desarrollado_por') }} Roberto Gómez </p>
       <p>© {{ new Date().getFullYear() }} Adopciones Zaragoza - {{ t('derechos_reservados') }}</p>
     </div>
   </footer>
