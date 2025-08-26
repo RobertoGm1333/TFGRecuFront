@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import GraficaHistorialAdopciones from '@/components/GraficaHistorialAdopciones.vue'
 
+/* ======================== Tipos ======================== */
 type Protectora = {
   id_Protectora: number
   nombre_Protectora: string
@@ -30,21 +31,38 @@ type PuntoGrafica = {
   nombre_Protectora?: string
 }
 
-/* Tabs */
+/* ======================== Estado ======================== */
 const tab = ref<'listado' | 'grafica'>('listado')
 
-/* Filtros y datos base */
 const protectorAs = ref<Protectora[]>([])
-const protectoraId = ref<number | 0>(0) // 0 = Todas
+const protectoraId = ref<number | 0>(0) // 0 = todas
+
+// cache de gatos por protectora para poder resolver nombre_Gato
 const gatosPorProtectora = ref<Record<number, Gato[]>>({})
 const gatosCacheCargados = ref<Set<number>>(new Set())
 
-/* Adopciones */
 const adopciones = ref<Adopcion[]>([])
 const cargandoAdopciones = ref(false)
 const errorAdopciones = ref<string | null>(null)
 
-/* Tabla */
+const serieGrafica = ref<PuntoGrafica[]>([])
+const cargandoGrafica = ref(true)
+const errorGrafica = ref<string | null>(null)
+
+// diálogo CRUD
+const dialog = ref(false)
+const editando = ref<Adopcion | null>(null)
+const form = ref<Adopcion>({
+  id_Adopcion: 0,
+  id_Protectora: 0,
+  id_Gato: 0,
+  fecha_Adopcion: new Date().toISOString().slice(0, 10),
+  origenWeb: true,
+  telefono_Adoptante: '',
+  observaciones: ''
+})
+
+/* ======================== Headers ======================== */
 const headersAdopciones = [
   { title: 'ID', key: 'id_Adopcion' },
   { title: 'Protectora', key: 'nombre_Protectora' },
@@ -56,7 +74,7 @@ const headersAdopciones = [
   { title: 'Acciones', key: 'acciones', sortable: false },
 ]
 
-/* Mapas nombre protectora/gato */
+/* ======================== Mapas ======================== */
 const protectoraPorId = computed(() => {
   const m = new Map<number, string>()
   for (const p of protectorAs.value) m.set(p.id_Protectora, p.nombre_Protectora)
@@ -71,25 +89,7 @@ const gatoPorId = computed(() => {
   return m
 })
 
-/* Gráfica */
-const serieGrafica = ref<PuntoGrafica[]>([])
-const cargandoGrafica = ref(true)
-const errorGrafica = ref<string | null>(null)
-
-/* CRUD */
-const dialog = ref(false)
-const editando = ref<Adopcion | null>(null)
-const form = ref<Adopcion>({
-  id_Adopcion: 0,
-  id_Protectora: 0,
-  id_Gato: 0,
-  fecha_Adopcion: new Date().toISOString().slice(0, 10),
-  origenWeb: true,
-  telefono_Adoptante: '',
-  observaciones: ''
-})
-
-/* Validaciones teléfono 9..15 dígitos */
+/* ======================== Validaciones ======================== */
 const telRules = [
   (v: string) => !!v || 'El teléfono es obligatorio',
   (v: string) => /^\d+$/.test(v) || 'Solo dígitos',
@@ -97,18 +97,13 @@ const telRules = [
   (v: string) => (v?.length ?? 0) <= 15 || 'Máximo 15 dígitos',
 ]
 
-/* Helpers */
 function onlyDigitsKeypress(e: KeyboardEvent) {
   const allow = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End']
   if (allow.includes(e.key)) return
   if (!/^\d$/.test(e.key)) e.preventDefault()
 }
 
-function toast(msg: string) {
-  console.log(msg)
-}
-
-/* Cargas básicas */
+/* ======================== Cargas ======================== */
 async function cargarProtectoras() {
   const res = await fetch('http://localhost:5167/api/Protectora', { headers: { Accept: 'application/json' } })
   if (!res.ok) throw new Error('Error HTTP ' + res.status)
@@ -124,38 +119,41 @@ async function cargarGatosDeProtectora(id: number) {
   gatosCacheCargados.value.add(id)
 }
 
-/* --- CORREGIDO: carga robusta de adopciones + filtro por protectora --- */
+// Carga adopciones y, muy importante, carga gatos de sus protectorAs para poder mostrar el nombre del gato
 async function cargarAdopciones() {
   cargandoAdopciones.value = true
   errorAdopciones.value = null
-
   try {
     const base = 'http://localhost:5167/api/Adopcion'
+    let lista: Adopcion[] = []
 
-    // 0 = todas las protectoras
     if (!protectoraId.value || protectoraId.value === 0) {
-      const resAll = await fetch(base, { headers: { Accept: 'application/json' } })
-      if (!resAll.ok) throw new Error('Error HTTP ' + resAll.status)
-      const listAll = await resAll.json()
-      adopciones.value = Array.isArray(listAll) ? listAll : []
-      return
+      const res = await fetch(base, { headers: { Accept: 'application/json' } })
+      if (!res.ok) throw new Error('Error HTTP ' + res.status)
+      lista = await res.json()
+    } else {
+      const res = await fetch(`${base}/protectora/${protectoraId.value}`, { headers: { Accept: 'application/json' } })
+      if (res.ok) {
+        lista = await res.json()
+      } else if (res.status === 404) {
+        // Fallback por si el endpoint devolviera 404
+        const resAll = await fetch(base, { headers: { Accept: 'application/json' } })
+        if (!resAll.ok) throw new Error('Error HTTP ' + resAll.status)
+        const all = await resAll.json()
+        lista = (Array.isArray(all) ? all : []).filter(
+          (x: any) => Number(x.id_Protectora) === Number(protectoraId.value)
+        )
+      } else {
+        throw new Error('Error HTTP ' + res.status)
+      }
     }
 
-    // Intento 1: endpoint específico por protectora
-    let res = await fetch(`${base}/protectora/${protectoraId.value}`, { headers: { Accept: 'application/json' } })
+    adopciones.value = Array.isArray(lista) ? lista : []
 
-    if (res.ok) {
-      const list = await res.json()
-      adopciones.value = Array.isArray(list) ? list : []
-    } else if (res.status === 404) {
-      // Intento 2 (fallback): traer todas y filtrar en cliente
-      res = await fetch(base, { headers: { Accept: 'application/json' } })
-      if (!res.ok) throw new Error('Error HTTP ' + res.status)
-      const all = await res.json()
-      const arr = Array.isArray(all) ? all : []
-      adopciones.value = arr.filter((x: any) => Number(x.id_Protectora) === Number(protectoraId.value))
-    } else {
-      throw new Error('Error HTTP ' + res.status)
+    // cargar los gatos de todas las protectorAs presentes en las adopciones
+    const idsProtectoras = [...new Set(adopciones.value.map(a => Number(a.id_Protectora)))]
+    for (const id of idsProtectoras) {
+      await cargarGatosDeProtectora(id)
     }
   } catch (e: any) {
     adopciones.value = []
@@ -185,7 +183,7 @@ async function cargarGrafica() {
   }
 }
 
-/* CRUD handlers */
+/* ======================== CRUD ======================== */
 function openCrear() {
   editando.value = null
   form.value = {
@@ -204,9 +202,7 @@ function openCrear() {
 async function openEditar(a: Adopcion) {
   editando.value = a
   form.value = { ...a }
-  if (form.value.id_Protectora) {
-    await cargarGatosDeProtectora(form.value.id_Protectora)
-  }
+  if (form.value.id_Protectora) await cargarGatosDeProtectora(form.value.id_Protectora)
   dialog.value = true
 }
 
@@ -237,8 +233,8 @@ async function guardar() {
       if (i !== -1) adopciones.value[i] = saved
     }
   }
+
   dialog.value = false
-  toast('Adopción guardada')
   await cargarAdopciones()
   await cargarGrafica()
 }
@@ -247,11 +243,10 @@ async function borrar(a: Adopcion) {
   const res = await fetch(`http://localhost:5167/api/Adopcion/${a.id_Adopcion}`, { method: 'DELETE' })
   if (!res.ok) throw new Error('Error HTTP ' + res.status)
   adopciones.value = adopciones.value.filter(x => x.id_Adopcion !== a.id_Adopcion)
-  toast('Adopción eliminada')
   await cargarGrafica()
 }
 
-/* Watchers */
+/* ======================== Watchers/Mount ======================== */
 watch(protectoraId, async (id) => {
   await cargarAdopciones()
   await cargarGrafica()
@@ -277,7 +272,6 @@ onMounted(async () => {
         <h1 class="text-h5 font-weight-bold">Gestión de Adopciones</h1>
       </v-col>
       <v-col cols="12" sm="6" class="d-flex gap-3 align-center">
-        <!-- CORREGIDO: v-model.number -->
         <v-select
           v-model.number="protectoraId"
           :items="[{ title: 'Todas las protectoras', value: 0 }, ...protectorAs.map(p => ({ title: p.nombre_Protectora, value: p.id_Protectora }))]"
@@ -309,7 +303,8 @@ onMounted(async () => {
                 :items="adopciones.map(a => ({
                   ...a,
                   nombre_Protectora: protectoraPorId.get(a.id_Protectora) || ('#' + a.id_Protectora),
-                  nombre_Gato: gatoPorId.get(a.id_Gato) || ('#' + a.id_Gato),
+                  // AQUÍ: nombre del gato resuelto desde el cache
+                  nombre_Gato: gatoPorId.get(a.id_Gato) || 'Desconocido',
                 }))"
                 density="comfortable"
                 item-value="id_Adopcion"
@@ -443,7 +438,6 @@ onMounted(async () => {
   border-radius: 12px;
 }
 
-/* Contenedor para permitir scroll horizontal sin romper columnas */
 .tabla-wrapper {
   width: 100%;
   overflow-x: auto;
