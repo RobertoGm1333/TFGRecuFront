@@ -34,8 +34,8 @@ const gato = ref<any>({
   edad: 0,
   sexo: '',
   esterilizado: false,
-  descripcion_Gato: '', // Descripción en español
-  descripcion_Gato_En: '', // Descripción en inglés
+  descripcion_Gato: '',
+  descripcion_Gato_En: '',
   imagen_Gato: '',
   id_Protectora: null,
   visible: true
@@ -115,7 +115,7 @@ onMounted(async () => {
 
     await cargarGatos()
     await cargarSolicitudes()
-    await cargarAdopciones() // NUEVO
+    await cargarAdopciones()
     await cargarSerieGrafica()
   } catch (err) {
     console.error("Error cargando datos de la protectora:", err);
@@ -388,8 +388,6 @@ async function cargarAdopciones() {
   }
 }
 
-
-
 const tabAdopciones = ref<'listado'|'grafica'>('listado')
 
 // diálogo crear/editar adopción
@@ -405,12 +403,44 @@ const formAdopcion = ref<Adopcion>({
   observaciones: ''
 })
 
+// === Validación de teléfono (9 a 15 dígitos, solo números) ===
+const MAX_TEL = 15
+const MIN_TEL = 9
+
+const reglasTelefono = [
+  (v: string) => !!v || 'El teléfono es obligatorio',
+  (v: string) => /^\d+$/.test(v || '') || 'Solo se permiten números',
+  (v: string) => (v?.length >= MIN_TEL && v?.length <= MAX_TEL) || `Debe tener entre ${MIN_TEL} y ${MAX_TEL} dígitos`,
+]
+
+function soloDigitos(e: KeyboardEvent) {
+  const key = e.key
+  if (!/^\d$/.test(key)) e.preventDefault()
+}
+function pegarSoloDigitos(e: ClipboardEvent) {
+  e.preventDefault()
+  const texto = (e.clipboardData?.getData('text') || '').replace(/\D/g, '').slice(0, MAX_TEL)
+  formAdopcion.value.telefono_Adoptante = texto
+}
+function normalizarTelefono() {
+  formAdopcion.value.telefono_Adoptante = (formAdopcion.value.telefono_Adoptante || '').replace(/\D/g, '').slice(0, MAX_TEL)
+}
+const telefonoOk = computed(() =>
+  /^\d+$/.test(formAdopcion.value.telefono_Adoptante || '') &&
+  formAdopcion.value.telefono_Adoptante.length >= MIN_TEL &&
+  formAdopcion.value.telefono_Adoptante.length <= MAX_TEL
+)
+const formAdopcionValido = computed(() => {
+  return telefonoOk.value && formAdopcion.value.id_Gato > 0 && !!formAdopcion.value.fecha_Adopcion
+})
+// === /Validación de teléfono ===
+
 function abrirNuevaAdopcion() {
   if (!idProtectora.value) return
   editandoAdopcion.value = null
   formAdopcion.value = {
     id_Adopcion: 0,
-    id_Protectora: idProtectora.value!,   // <- importante
+    id_Protectora: idProtectora.value!,
     id_Gato: 0,
     fecha_Adopcion: new Date().toISOString().slice(0,10),
     origenWeb: true,
@@ -422,10 +452,9 @@ function abrirNuevaAdopcion() {
 
 function abrirEditarAdopcion(a: Adopcion) {
   editandoAdopcion.value = a
-  formAdopcion.value = { ...a, id_Protectora: idProtectora.value! } // <- asegura protectora
+  formAdopcion.value = { ...a, id_Protectora: idProtectora.value! }
   dialogAdopcion.value = true
 }
-
 
 async function guardarAdopcion() {
   try {
@@ -435,7 +464,6 @@ async function guardarAdopcion() {
       : `http://localhost:5167/api/Adopcion/${formAdopcion.value.id_Adopcion}`
     const method = creando ? 'POST' : 'PUT'
 
-    // Asegura que siempre mandamos la protectora del usuario logueado
     const payload = { ...formAdopcion.value, id_Protectora: idProtectora.value! }
 
     const res = await fetch(url, {
@@ -446,11 +474,9 @@ async function guardarAdopcion() {
     if (!res.ok) throw new Error('Error HTTP ' + res.status)
 
     if (method === 'PUT' && res.status === 204) {
-      // API no devuelve cuerpo: actualiza optimistamente
       const i = adopciones.value.findIndex(x => x.id_Adopcion === formAdopcion.value.id_Adopcion)
       if (i !== -1) adopciones.value[i] = { ...formAdopcion.value }
     } else {
-      // POST (o PUT que sí devuelve JSON)
       const saved = await res.json()
       if (creando) {
         adopciones.value.push(saved)
@@ -463,7 +489,6 @@ async function guardarAdopcion() {
     dialogAdopcion.value = false
     mensaje('Adopción guardada', 'success')
 
-    // Refresca desde servidor (evita “unknown”) y actualiza gráfica
     await cargarAdopciones()
     cargandoGrafica.value = true
     await cargarSerieGrafica()
@@ -472,7 +497,6 @@ async function guardarAdopcion() {
   }
 }
 
-
 async function borrarAdopcion(a: Adopcion) {
   try {
     const res = await fetch(`http://localhost:5167/api/Adopcion/${a.id_Adopcion}`, { method: 'DELETE' })
@@ -480,7 +504,6 @@ async function borrarAdopcion(a: Adopcion) {
     adopciones.value = adopciones.value.filter(x => x.id_Adopcion !== a.id_Adopcion)
     mensaje('Adopción eliminada', 'success')
 
-    // refrescar gráfica
     cargandoGrafica.value = true
     await cargarSerieGrafica()
   } catch (e: any) {
@@ -501,7 +524,6 @@ async function borrarAdopcion(a: Adopcion) {
       </v-col>
     </v-row>
 
-    <!-- Tabla responsive -->
     <div class="protectora-admin__tabla-container px-4">
       <v-data-table
         :headers="headers"
@@ -576,7 +598,6 @@ async function borrarAdopcion(a: Adopcion) {
       </v-data-table>
     </v-container>
 
-    <!-- ===== NUEVO: Adopciones completadas (tabs) ===== -->
     <v-card class="mx-4 mb-6" elevation="2">
       <v-card-title class="d-flex align-center justify-space-between">
         <div>Adopciones completadas</div>
@@ -593,7 +614,6 @@ async function borrarAdopcion(a: Adopcion) {
       </v-tabs>
 
       <v-window v-model="tabAdopciones">
-        <!-- TAB LISTADO -->
         <v-window-item value="listado">
           <v-card-text>
             <div v-if="cargandoAdopciones">Cargando…</div>
@@ -629,7 +649,6 @@ async function borrarAdopcion(a: Adopcion) {
           </v-card-text>
         </v-window-item>
 
-        <!-- TAB GRÁFICA -->
         <v-window-item value="grafica">
           <v-card-text>
             <div v-if="cargandoGrafica">Cargando…</div>
@@ -639,7 +658,6 @@ async function borrarAdopcion(a: Adopcion) {
         </v-window-item>
       </v-window>
     </v-card>
-    <!-- ===== /NUEVO ===== -->
 
     <v-dialog v-model="mostrarDialogo" max-width="700">
       <v-card class="protectora-admin__dialogo">
@@ -907,7 +925,7 @@ async function borrarAdopcion(a: Adopcion) {
           <v-form @submit.prevent="solicitudesStore.actualizarEstado({ estado: nuevoEstado, comentario: comentarioProtectora })">
             <v-select v-model="nuevoEstado" :items="['Pendiente', 'Aprobada', 'Rechazada', 'Completada']" label="Estado" :rules="reglas.estado" variant="outlined" density="comfortable"></v-select>
             <v-textarea v-model="comentarioProtectora" label="Comentario" :rules="reglas.comentario" variant="outlined" density="comfortable"></v-textarea>
-            <div class="text-right">  
+            <div class="text-right">
               <v-btn color="primary" type="submit">Guardar</v-btn>
             </div>
           </v-form>
@@ -918,7 +936,6 @@ async function borrarAdopcion(a: Adopcion) {
       </v-card>
     </v-dialog>
 
-    <!-- Dialog CRUD Adopción -->
     <v-dialog v-model="dialogAdopcion" max-width="720">
       <v-card>
         <v-card-title>{{ editandoAdopcion ? 'Editar adopción' : 'Nueva adopción' }}</v-card-title>
@@ -930,7 +947,8 @@ async function borrarAdopcion(a: Adopcion) {
                   v-model="formAdopcion.fecha_Adopcion"
                   type="date"
                   label="Fecha adopción"
-                  variant="outlined" density="comfortable"
+                  variant="outlined"
+                  density="comfortable"
                 />
               </v-col>
               <v-col cols="12" sm="4">
@@ -938,14 +956,24 @@ async function borrarAdopcion(a: Adopcion) {
                   v-model="formAdopcion.id_Gato"
                   :items="gatos.map(g => ({ title: g.nombre_Gato, value: g.id_Gato }))"
                   label="Gato"
-                  variant="outlined" density="comfortable"
+                  variant="outlined"
+                  density="comfortable"
                 />
               </v-col>
               <v-col cols="12" sm="4">
                 <v-text-field
                   v-model="formAdopcion.telefono_Adoptante"
                   label="Teléfono adoptante"
-                  variant="outlined" density="comfortable"
+                  type="tel"
+                  inputmode="numeric"
+                  :rules="reglasTelefono"
+                  :maxlength="MAX_TEL"
+                  :counter="MAX_TEL"
+                  variant="outlined"
+                  density="comfortable"
+                  @keypress="soloDigitos"
+                  @paste="pegarSoloDigitos"
+                  @input="normalizarTelefono"
                 />
               </v-col>
             </v-row>
@@ -955,7 +983,8 @@ async function borrarAdopcion(a: Adopcion) {
                 <v-switch
                   v-model="formAdopcion.origenWeb"
                   label="¿Adopción hecha desde la web?"
-                  inset color="primary"
+                  inset
+                  color="primary"
                 />
               </v-col>
             </v-row>
@@ -965,22 +994,24 @@ async function borrarAdopcion(a: Adopcion) {
                 <v-textarea
                   v-model="formAdopcion.observaciones"
                   label="Observaciones"
-                  variant="outlined" density="comfortable"
-                  auto-grow rows="3"
+                  variant="outlined"
+                  density="comfortable"
+                  auto-grow
+                  rows="3"
                 />
               </v-col>
             </v-row>
 
             <div class="text-right">
               <v-btn variant="text" @click="dialogAdopcion = false">Cancelar</v-btn>
-              <v-btn color="primary" type="submit">{{ editandoAdopcion ? 'Guardar cambios' : 'Crear adopción' }}</v-btn>
+              <v-btn color="primary" type="submit" :disabled="!formAdopcionValido">
+                {{ editandoAdopcion ? 'Guardar cambios' : 'Crear adopción' }}
+              </v-btn>
             </div>
           </v-form>
         </v-card-text>
       </v-card>
     </v-dialog>
-    <!-- /Dialog CRUD Adopción -->
-
   </v-container>
 </template>
 
