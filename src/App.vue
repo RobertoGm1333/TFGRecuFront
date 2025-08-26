@@ -56,8 +56,8 @@ const chatInput = ref('')
 const chatSending = ref(false)
 const chatMessages = ref<ChatMsg[]>([])
 const chatBox = ref<HTMLElement | null>(null)
+const chatInputEl = ref<HTMLInputElement | null>(null)
 
-/* Reiniciamos siempre al cargar */
 const chatLoad = () => {
   try { localStorage.removeItem('chatbox_state') } catch {}
   chatOpen.value = false
@@ -77,6 +77,8 @@ const chatOpenPanel = async () => {
   chatOpen.value = true
   chatSave()
   await chatScrollBottom()
+  await nextTick()
+  chatInputEl.value?.focus()
 }
 
 const chatClosePanel = () => {
@@ -92,6 +94,8 @@ const chatSend = async () => {
   chatSending.value = true
   chatSave()
   await chatScrollBottom()
+  await nextTick()
+  chatInputEl.value?.focus()
   try {
     const res = await fetch('http://localhost:5167/api/Catherine/chat', {
       method: 'POST',
@@ -108,6 +112,8 @@ const chatSend = async () => {
     chatSending.value = false
     chatSave()
     chatScrollBottom()
+    await nextTick()
+    chatInputEl.value?.focus()
   }
 }
 
@@ -131,7 +137,6 @@ onMounted(() => {
     <div v-if="chatOpen" class="chatbox__panel">
       <div class="chatbox__header" @click="chatClosePanel">
         <span>Catherine</span>
-        
       </div>
       <div class="chatbox__messages" ref="chatBox">
         <div v-for="(m,i) in chatMessages" :key="i" class="chatbox__msg" :data-role="m.role">
@@ -144,7 +149,7 @@ onMounted(() => {
         </div>
       </div>
       <form class="chatbox__input" @submit.prevent="chatSend">
-        <input v-model="chatInput" :disabled="chatSending" placeholder="Escribe tu mensaje" />
+        <input ref="chatInputEl" v-model="chatInput" placeholder="Escribe tu mensaje" @keydown.enter.prevent="!chatSending && chatSend()" />
         <button type="submit" :disabled="chatSending">Enviar</button>
       </form>
     </div>
