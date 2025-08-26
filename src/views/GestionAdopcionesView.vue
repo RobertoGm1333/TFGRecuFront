@@ -446,7 +446,6 @@ onMounted(async () => {
 /* Cabecera coherente con Gestión de Gatos */
 .admin-view__titulo {
   color: #FF5500;
-  font-weight: 700;
   font-size: 2rem;
   line-height: 1.2;
 }
@@ -488,5 +487,80 @@ onMounted(async () => {
 .admin-table :deep(tbody td) {
   vertical-align: middle;
   white-space: nowrap;
+}
+
+/* ======================== MODO OSCURO – monocromático como en Gatos ======================== */
+@media (prefers-color-scheme: dark) {
+  /* Card completo (pestañas + filtro + contenido + footer) */
+  .admin-card {
+    background-color: #272727;
+    color: #eaeaea;
+  }
+
+  /* Barra superior (tabs + filtro) dentro del card */
+  .card-controls {
+    background-color: #272727;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .card-controls :deep(.v-tabs) {
+    background-color: transparent;
+    color: #eaeaea;
+  }
+  .card-controls :deep(.v-tab) {
+    color: #eaeaea;
+  }
+  .filter-protectora :deep(.v-field) {
+    background-color: #272727;
+    color: #eaeaea;
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  .filter-protectora :deep(.v-label),
+  .filter-protectora :deep(.v-select__selection-text),
+  .filter-protectora :deep(input) {
+    color: #eaeaea;
+  }
+
+  /* Tabla: cabecera + filas */
+  .admin-table {
+    background-color: #272727;
+    color: #eaeaea;
+  }
+  .admin-table :deep(.v-data-table__wrapper) {
+    background-color: #272727;
+  }
+  .admin-table :deep(thead) {
+    background-color: #272727;
+  }
+  .admin-table :deep(thead th) {
+    background-color: #272727;
+    color: #eaeaea;
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+  }
+  .admin-table :deep(tbody tr) {
+    background-color: #272727;
+  }
+  .admin-table :deep(tbody tr:hover) {
+    background-color: #272727;
+  }
+  .admin-table :deep(td) {
+    color: #eaeaea;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+  }
+
+  /* Pie de tabla: paginación / items per page */
+  .admin-table :deep(.v-data-table-footer) {
+    background-color: #272727;
+    color: #eaeaea;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .admin-table :deep(.v-field__input),
+  .admin-table :deep(.v-pagination),
+  .admin-table :deep(.v-select__selection-text) {
+    color: #eaeaea;
+  }
+  .admin-table :deep(.v-field) {
+    background-color: #272727;
+    border-color: rgba(255, 255, 255, 0.12);
+  }
 }
 </style>
