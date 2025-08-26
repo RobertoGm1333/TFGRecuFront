@@ -19,6 +19,7 @@ import CuidadoBasico from '@/views/CuidadoBasicoView.vue'
 import ConvivenciaAnimales from '@/views/ConvivenciaAnimalesView.vue'
 import ControlReproduccion from '@/views/ControlReproduccionView.vue'
 import GestionUsuariosView from '../views/GestionUsuariosView.vue'
+import GestionAdopcionesView from '@/views/GestionAdopcionesView.vue'
 import { useAutenticacion } from '@/stores/Autentificacion'
 
 const router = createRouter({
@@ -144,6 +145,10 @@ const router = createRouter({
         {
           path: 'gestion-usuarios',
           component: GestionUsuariosView
+        },
+        {
+          path: 'gestion-adopciones',
+          component: GestionAdopcionesView
         }
       ]
     },
