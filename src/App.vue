@@ -176,7 +176,7 @@ onMounted(() => {
   pointer-events: none;
   overflow: hidden;
 }
-
+ 
 .paw-print {
   position: absolute;
   width: 150px;
