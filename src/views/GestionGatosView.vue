@@ -136,7 +136,7 @@ async function confirmarEliminacion() {
         <h1 class="admin-view__titulo">Gestión de Gatos</h1>
       </v-col>
       <v-col cols="12" sm="auto" class="text-center text-sm-start mt-4 mt-sm-0 px-4">
-        <v-btn color="primary" @click="abrirFormulario" class="admin-view__boton">Nuevo gato</v-btn>
+        <v-btn color="primary" @click="abrirFormulario" class="admin-view__boton">+ Nuevo gato</v-btn>
       </v-col>
     </v-row>
 
@@ -162,13 +162,11 @@ async function confirmarEliminacion() {
         
         <template v-slot:item.acciones="{ item }">
           <div class="admin-view__acciones">
-            <v-btn color="primary" @click="editarGato(item)" class="mb-2 mb-sm-0 me-sm-2">
+            <v-btn icon color="blue" @click="editarGato(item)" class="mb-2 mb-sm-0 me-sm-2">
               <v-icon>mdi-pencil</v-icon>
-              <span class="d-none d-sm-inline ms-2">Editar</span>
             </v-btn>
-            <v-btn color="error" @click="pedirConfirmacion(item)">
+            <v-btn icon color="red" @click="pedirConfirmacion(item)">
               <v-icon>mdi-delete</v-icon>
-              <span class="d-none d-sm-inline ms-2">Eliminar</span>
             </v-btn>
           </div>
         </template>
@@ -417,14 +415,20 @@ async function confirmarEliminacion() {
     justify-content: flex-end;
     padding: 0;
 
+    /* Botones de acción circulares, solo icono */
     .v-btn {
-      min-width: 40px !important;
-      padding: 0 12px !important;
+      border-radius: 50% !important;
+      width: 36px !important;
       height: 36px !important;
+      min-width: 36px !important;
+      padding: 0 !important;
+    }
 
-      @media (min-width: 600px) {
-        min-width: 64px !important;
-        padding: 0 16px !important;
+    @media (min-width: 600px) {
+      .v-btn {
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
       }
     }
   }

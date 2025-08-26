@@ -119,7 +119,6 @@ async function cargarGatosDeProtectora(id: number) {
   gatosCacheCargados.value.add(id)
 }
 
-// Carga adopciones y, muy importante, carga gatos de sus protectorAs para poder mostrar el nombre del gato
 async function cargarAdopciones() {
   cargandoAdopciones.value = true
   errorAdopciones.value = null
@@ -136,7 +135,6 @@ async function cargarAdopciones() {
       if (res.ok) {
         lista = await res.json()
       } else if (res.status === 404) {
-        // Fallback por si el endpoint devolviera 404
         const resAll = await fetch(base, { headers: { Accept: 'application/json' } })
         if (!resAll.ok) throw new Error('Error HTTP ' + resAll.status)
         const all = await resAll.json()
@@ -150,7 +148,6 @@ async function cargarAdopciones() {
 
     adopciones.value = Array.isArray(lista) ? lista : []
 
-    // cargar los gatos de todas las protectorAs presentes en las adopciones
     const idsProtectoras = [...new Set(adopciones.value.map(a => Number(a.id_Protectora)))]
     for (const id of idsProtectoras) {
       await cargarGatosDeProtectora(id)
@@ -269,7 +266,7 @@ onMounted(async () => {
     <!-- Encabezado + acciones -->
     <v-row class="mb-4 header-row" align="center" justify="space-between">
       <v-col cols="12" sm="auto">
-        <h1 class="section-title">Gestión de Adopciones</h1>
+        <h1 class="admin-view__titulo">Gestión de Adopciones</h1>
       </v-col>
       <v-col cols="12" sm="6" class="d-flex gap-3 align-center header-actions">
         <v-btn color="primary" variant="elevated" class="nuevo-btn" prepend-icon="mdi-plus" @click="openCrear">Nueva adopción</v-btn>
@@ -308,7 +305,6 @@ onMounted(async () => {
                 :items="adopciones.map(a => ({
                   ...a,
                   nombre_Protectora: protectoraPorId.get(a.id_Protectora) || ('#' + a.id_Protectora),
-                  // AQUÍ: nombre del gato resuelto desde el cache
                   nombre_Gato: gatoPorId.get(a.id_Gato) || 'Desconocido',
                 }))"
                 density="comfortable"
@@ -448,7 +444,7 @@ onMounted(async () => {
 }
 
 /* Cabecera coherente con Gestión de Gatos */
-.section-title {
+.admin-view__titulo {
   color: #FF5500;
   font-weight: 700;
   font-size: 2rem;
@@ -468,7 +464,6 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-/* Barra de pestañas + filtro dentro del card */
 .card-controls {
   display: flex;
   align-items: center;
@@ -480,7 +475,6 @@ onMounted(async () => {
   max-width: 320px;
 }
 
-/* Tabla */
 .tabla-wrapper {
   width: 100%;
   overflow-x: auto;
