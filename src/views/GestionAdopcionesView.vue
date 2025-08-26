@@ -2,17 +2,8 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import GraficaHistorialAdopciones from '@/components/GraficaHistorialAdopciones.vue'
 
-type Protectora = {
-  id_Protectora: number
-  nombre_Protectora: string
-}
-
-type Gato = {
-  id_Gato: number
-  id_Protectora: number
-  nombre_Gato: string
-}
-
+type Protectora = { id_Protectora: number; nombre_Protectora: string }
+type Gato = { id_Gato: number; id_Protectora: number; nombre_Gato: string }
 type Adopcion = {
   id_Adopcion: number
   id_Protectora: number
@@ -22,7 +13,6 @@ type Adopcion = {
   telefono_Adoptante: string
   observaciones?: string
 }
-
 type PuntoGrafica = {
   mesYYYYMM: string
   total: number
@@ -53,16 +43,15 @@ const headersAdopciones = [
   { title: 'Origen', key: 'origenWeb' },
   { title: 'Teléfono', key: 'telefono_Adoptante' },
   { title: 'Observaciones', key: 'observaciones' },
-  { title: 'Acciones', key: 'acciones', sortable: false },
+  { title: 'Acciones', key: 'acciones', sortable: false }
 ]
 
-/* Mapa de nombre protectora / gato */
+/* Mapas auxiliares */
 const protectoraPorId = computed(() => {
   const m = new Map<number, string>()
   for (const p of protectorAs.value) m.set(p.id_Protectora, p.nombre_Protectora)
   return m
 })
-
 const gatoPorId = computed(() => {
   const m = new Map<number, string>()
   for (const lista of Object.values(gatosPorProtectora.value)) {
@@ -76,7 +65,7 @@ const serieGrafica = ref<PuntoGrafica[]>([])
 const cargandoGrafica = ref(true)
 const errorGrafica = ref<string | null>(null)
 
-/* CRUD */
+/* CRUD (diálogo) */
 const dialog = ref(false)
 const editando = ref<Adopcion | null>(null)
 const form = ref<Adopcion>({
@@ -89,23 +78,20 @@ const form = ref<Adopcion>({
   observaciones: ''
 })
 
-/* Validaciones teléfono 9..15 dígitos */
+/* Validaciones teléfono 9..15 dígitos y solo números */
 const telRules = [
   (v: string) => !!v || 'El teléfono es obligatorio',
   (v: string) => /^\d+$/.test(v) || 'Solo dígitos',
   (v: string) => (v?.length ?? 0) >= 9 || 'Mínimo 9 dígitos',
-  (v: string) => (v?.length ?? 0) <= 15 || 'Máximo 15 dígitos',
+  (v: string) => (v?.length ?? 0) <= 15 || 'Máximo 15 dígitos'
 ]
-
-/* Helpers */
 function onlyDigitsKeypress(e: KeyboardEvent) {
   const allow = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End']
   if (allow.includes(e.key)) return
   if (!/^\d$/.test(e.key)) e.preventDefault()
 }
-
 function toast(msg: string) {
-  // Reemplaza por tu snackbar si lo tienes
+  // Sustituye por tu snackbar global si lo tienes
   console.log(msg)
 }
 
@@ -115,7 +101,6 @@ async function cargarProtectoras() {
   if (!res.ok) throw new Error('Error HTTP ' + res.status)
   protectorAs.value = await res.json()
 }
-
 async function cargarGatosDeProtectora(id: number) {
   if (gatosCacheCargados.value.has(id)) return
   const res = await fetch(`http://localhost:5167/api/Gato/protectora/${id}`, { headers: { Accept: 'application/json' } })
@@ -124,40 +109,24 @@ async function cargarGatosDeProtectora(id: number) {
   gatosPorProtectora.value[id] = Array.isArray(list) ? list : []
   gatosCacheCargados.value.add(id)
 }
-
 async function cargarAdopciones() {
   cargandoAdopciones.value = true
   errorAdopciones.value = null
   try {
     const base = 'http://localhost:5167/api/Adopcion'
-    let data: any[] | null = null
-
+    let res: Response
     if (protectoraId.value && protectoraId.value !== 0) {
-      // primero intentamos el endpoint directo por protectora
-      let res = await fetch(`${base}/protectora/${protectoraId.value}`, { headers: { Accept: 'application/json' } })
-      if (!res.ok) {
-        if (res.status === 404) {
-          // Fallback: trae todo y filtra en cliente
-          res = await fetch(base, { headers: { Accept: 'application/json' } })
-          if (!res.ok) throw new Error('Error HTTP ' + res.status)
-          const all = await res.json()
-          data = (Array.isArray(all) ? all : []).filter((x: any) => x.id_Protectora === protectoraId.value)
-        } else {
-          throw new Error('Error HTTP ' + res.status)
-        }
-      } else {
-        const json = await res.json()
-        data = Array.isArray(json) ? json : []
+      res = await fetch(`${base}/protectora/${protectoraId.value}`, { headers: { Accept: 'application/json' } })
+      if (res.status === 404) {
+        adopciones.value = []
+        return
       }
     } else {
-      // todas
-      const res = await fetch(base, { headers: { Accept: 'application/json' } })
-      if (!res.ok) throw new Error('Error HTTP ' + res.status)
-      const json = await res.json()
-      data = Array.isArray(json) ? json : []
+      res = await fetch(base, { headers: { Accept: 'application/json' } })
     }
-
-    adopciones.value = data!
+    if (!res.ok) throw new Error('Error HTTP ' + res.status)
+    const list = await res.json()
+    adopciones.value = Array.isArray(list) ? list : []
   } catch (e: any) {
     errorAdopciones.value = e?.message ?? 'No se pudieron cargar las adopciones'
     adopciones.value = []
@@ -165,7 +134,6 @@ async function cargarAdopciones() {
     cargandoAdopciones.value = false
   }
 }
-
 async function cargarGrafica() {
   cargandoGrafica.value = true
   errorGrafica.value = null
@@ -200,24 +168,19 @@ function openCrear() {
   }
   dialog.value = true
 }
-
 async function openEditar(a: Adopcion) {
   editando.value = a
   form.value = { ...a }
-  if (form.value.id_Protectora) {
-    await cargarGatosDeProtectora(form.value.id_Protectora)
-  }
+  if (form.value.id_Protectora) await cargarGatosDeProtectora(form.value.id_Protectora)
   dialog.value = true
 }
-
 async function guardar() {
   const creando = !editando.value
-  const url = creando
-    ? 'http://localhost:5167/api/Adopcion'
-    : `http://localhost:5167/api/Adopcion/${form.value.id_Adopcion}`
+  const url = creando ? 'http://localhost:5167/api/Adopcion'
+                      : `http://localhost:5167/api/Adopcion/${form.value.id_Adopcion}`
   const method = creando ? 'POST' : 'PUT'
-
   const payload = { ...form.value }
+
   const res = await fetch(url, {
     method,
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -230,9 +193,8 @@ async function guardar() {
     if (i !== -1) adopciones.value[i] = { ...form.value }
   } else {
     const saved = await res.json()
-    if (creando) {
-      adopciones.value.push(saved)
-    } else {
+    if (creando) adopciones.value.push(saved)
+    else {
       const i = adopciones.value.findIndex(x => x.id_Adopcion === saved.id_Adopcion)
       if (i !== -1) adopciones.value[i] = saved
     }
@@ -242,7 +204,6 @@ async function guardar() {
   await cargarAdopciones()
   await cargarGrafica()
 }
-
 async function borrar(a: Adopcion) {
   const res = await fetch(`http://localhost:5167/api/Adopcion/${a.id_Adopcion}`, { method: 'DELETE' })
   if (!res.ok) throw new Error('Error HTTP ' + res.status)
@@ -253,13 +214,10 @@ async function borrar(a: Adopcion) {
 
 /* Watchers */
 watch(protectoraId, async (id) => {
-  // Por si el v-select devolviera string en algún navegador, fuerza número:
-  protectoraId.value = Number(id) || 0
   await cargarAdopciones()
   await cargarGrafica()
-  if (protectoraId.value && protectoraId.value !== 0) await cargarGatosDeProtectora(protectoraId.value)
+  if (id && id !== 0) await cargarGatosDeProtectora(id)
 })
-
 watch(() => form.value.id_Protectora, async (id) => {
   if (id) await cargarGatosDeProtectora(id)
 })
@@ -272,81 +230,101 @@ onMounted(async () => {
 </script>
 
 <template>
-  <v-container fluid class="px-4 admin-adopciones">
+  <v-container fluid class="px-4">
     <v-row class="mb-4" align="center" justify="space-between">
       <v-col cols="12" sm="auto">
         <h1 class="text-h5 font-weight-bold">Gestión de Adopciones</h1>
       </v-col>
-      <v-col cols="12" sm="6" class="d-flex gap-3 align-center">
+
+      <v-col cols="12" sm="7" class="d-flex gap-3 align-center">
         <v-select
-          v-model.number="protectoraId"
+          v-model="protectoraId"
           :items="[{ title: 'Todas las protectoras', value: 0 }, ...protectorAs.map(p => ({ title: p.nombre_Protectora, value: p.id_Protectora }))]"
           label="Filtrar por protectora"
           density="comfortable"
           variant="outlined"
           hide-details
-          class="select-filtro"
+          class="max-w-340"
         />
         <v-btn color="primary" variant="tonal" prepend-icon="mdi-plus" @click="openCrear">Nueva adopción</v-btn>
       </v-col>
     </v-row>
 
-    <v-card class="mx-auto mb-6 card-grande" elevation="2">
+    <v-card class="admin-card" elevation="2">
       <v-tabs v-model="tab" class="px-4">
         <v-tab value="listado">LISTADO</v-tab>
         <v-tab value="grafica">GRÁFICA</v-tab>
       </v-tabs>
 
       <v-window v-model="tab">
+        <!-- LISTADO -->
         <v-window-item value="listado">
           <v-card-text>
             <div v-if="cargandoAdopciones">Cargando…</div>
             <div v-else-if="errorAdopciones">{{ errorAdopciones }}</div>
-            <v-data-table
-              v-else
-              :headers="headersAdopciones"
-              :items="adopciones.map(a => ({
-                ...a,
-                nombre_Protectora: protectoraPorId.get(a.id_Protectora) || ('#' + a.id_Protectora),
-                nombre_Gato: gatoPorId.get(a.id_Gato) || ('#' + a.id_Gato),
-              }))"
-              density="comfortable"
-              item-value="id_Adopcion"
-              :items-per-page="10"
-              class="elevation-1 tabla"
-            >
-              <template #item.fecha_Adopcion="{ item }">
-                {{ new Date(item.fecha_Adopcion).toLocaleDateString() }}
-              </template>
 
-              <template #item.origenWeb="{ item }">
-                <v-chip :color="item.origenWeb ? 'blue' : 'grey'" size="small" variant="flat">
-                  {{ item.origenWeb ? 'Web' : 'Manual' }}
-                </v-chip>
-              </template>
+            <!-- Contenedor ancho con scroll horizontal (como en ProtectoraAdmin) -->
+            <div v-else class="tabla-wrapper">
+              <v-data-table
+                :headers="headersAdopciones"
+                :items="adopciones.map(a => ({
+                  ...a,
+                  nombre_Protectora: protectoraPorId.get(a.id_Protectora) || ('#' + a.id_Protectora),
+                  nombre_Gato: gatoPorId.get(a.id_Gato) || ('#' + a.id_Gato)
+                }))"
+                class="admin-table"
+                density="comfortable"
+                item-value="id_Adopcion"
+                :items-per-page="10"
+                mobile-breakpoint="0"
+              >
+                <!-- formatos -->
+                <template #item.fecha_Adopcion="{ item }">
+                  {{ new Date(item.fecha_Adopcion).toLocaleDateString() }}
+                </template>
 
-              <template #item.acciones="{ item }">
-                <v-btn icon="mdi-pencil" size="small" class="mr-2" @click="openEditar(item)" />
-                <v-btn icon="mdi-delete" size="small" color="error" @click="borrar(item)" />
-              </template>
+                <template #item.origenWeb="{ item }">
+                  <v-chip
+                    :color="item.origenWeb ? 'blue' : 'grey'"
+                    size="small"
+                    variant="flat"
+                  >
+                    {{ item.origenWeb ? 'Web' : 'Manual' }}
+                  </v-chip>
+                </template>
 
-              <template #no-data>
-                <div class="text-center pa-6">No hay adopciones registradas.</div>
-              </template>
-            </v-data-table>
+                <template #item.acciones="{ item }">
+                  <div class="acciones">
+                    <v-btn icon="mdi-pencil" size="small" class="mr-1" @click="openEditar(item)" />
+                    <v-btn icon="mdi-delete" size="small" color="error" @click="borrar(item)" />
+                  </div>
+                </template>
+
+                <template #no-data>
+                  <div class="text-center pa-6">No hay adopciones registradas.</div>
+                </template>
+              </v-data-table>
+            </div>
           </v-card-text>
         </v-window-item>
 
+        <!-- GRÁFICA -->
         <v-window-item value="grafica">
           <v-card-text>
             <div v-if="cargandoGrafica">Cargando…</div>
             <div v-else-if="errorGrafica">{{ errorGrafica }}</div>
-            <GraficaHistorialAdopciones v-else :items="serieGrafica" :monthsBack="12" title="Últimos 12 meses" />
+            <GraficaHistorialAdopciones
+              v-else
+              :items="serieGrafica"
+              :monthsBack="12"
+              title="Últimos 12 meses"
+            />
           </v-card-text>
         </v-window-item>
       </v-window>
     </v-card>
 
+    <!-- Diálogo CRUD -->
     <v-dialog v-model="dialog" max-width="760">
       <v-card>
         <v-card-title>{{ editando ? 'Editar adopción' : 'Nueva adopción' }}</v-card-title>
@@ -435,28 +413,50 @@ onMounted(async () => {
 </template>
 
 <style scoped lang="scss">
-.admin-adopciones {
-  .select-filtro {
-    min-width: 260px;
-  }
-}
-
-/* Card más grande, centrada y con más aire */
-.card-grande {
-  max-width: 1200px;
+.admin-card {
   width: 100%;
+  max-width: 1200px; /* mismo ancho “cómodo” que en ProtectoraAdmin */
+  margin: 0 auto 24px auto;
+  border-radius: 12px;
 }
 
-/* Tabla */
-.tabla :deep(thead th) {
-  font-weight: 700;
-  color: #cbd5e1;
+.tabla-wrapper {
+  width: 100%;
+  overflow-x: auto; /* scroll horizontal si hiciera falta */
 }
 
-.tabla :deep(tbody td) {
-  vertical-align: middle;
+.admin-table :deep(table) {
+  min-width: 960px; /* asegura ancho para que no apelmace columnas */
 }
 
-/* Bordes suaves en tarjetas */
-.v-card { border-radius: 12px; }
+/* Evitar que los textos salgan en vertical */
+.admin-table :deep(td),
+.admin-table :deep(th) {
+  white-space: nowrap;
+}
+
+/* Anchos orientativos por columna */
+.admin-table :deep(th:nth-child(1)),
+.admin-table :deep(td:nth-child(1)) { width: 72px; text-align: left; }
+.admin-table :deep(th:nth-child(2)),
+.admin-table :deep(td:nth-child(2)) { width: 220px; }
+.admin-table :deep(th:nth-child(3)),
+.admin-table :deep(td:nth-child(3)) { width: 200px; }
+.admin-table :deep(th:nth-child(4)),
+.admin-table :deep(td:nth-child(4)) { width: 160px; }
+.admin-table :deep(th:nth-child(5)),
+.admin-table :deep(td:nth-child(5)) { width: 110px; text-align: center; }
+.admin-table :deep(th:nth-child(6)),
+.admin-table :deep(td:nth-child(6)) { width: 160px; }
+.admin-table :deep(th:nth-child(7)),
+.admin-table :deep(td:nth-child(7)) { width: 240px; }
+.admin-table :deep(th:nth-child(8)),
+.admin-table :deep(td:nth-child(8)) { width: 140px; text-align: center; }
+
+.acciones {
+  display: inline-flex;
+  align-items: center;
+}
+
+.max-w-340 { max-width: 340px; }
 </style>
