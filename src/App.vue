@@ -130,30 +130,30 @@ onMounted(() => {
     </div>
     <Footer />
   
-  <div class="chatbox">
-    <button class="chatbox__fab" @click="chatOpenPanel" v-if="!chatOpen" aria-label="Abrir chat IA">
-      <span>IA</span>
-    </button>
-    <div v-if="chatOpen" class="chatbox__panel">
-      <div class="chatbox__header" @click="chatClosePanel">
-        <span>Catherine</span>
-      </div>
-      <div class="chatbox__messages" ref="chatBox">
-        <div v-for="(m,i) in chatMessages" :key="i" class="chatbox__msg" :data-role="m.role">
-          <div class="chatbox__bubble">{{ m.text }}</div>
+    <div class="chatbox">
+      <button class="chatbox__fab" @click="chatOpenPanel" v-if="!chatOpen" aria-label="Abrir chat IA">
+        <span>IA</span>
+      </button>
+      <div v-if="chatOpen" class="chatbox__panel">
+        <div class="chatbox__header" @click="chatClosePanel">
+          <span>Catherine</span>
         </div>
-        <div v-if="chatSending" class="chatbox__typing">
-          <span class="chatbox__dot"></span>
-          <span class="chatbox__dot"></span>
-          <span class="chatbox__dot"></span>
+        <div class="chatbox__messages" ref="chatBox" role="log" aria-live="polite">
+          <div v-for="(m,i) in chatMessages" :key="i" class="chatbox__msg" :data-role="m.role">
+            <div class="chatbox__bubble">{{ m.text }}</div>
+          </div>
+          <div v-if="chatSending" class="chatbox__typing">
+            <span class="chatbox__dot"></span>
+            <span class="chatbox__dot"></span>
+            <span class="chatbox__dot"></span>
+          </div>
         </div>
+        <form class="chatbox__input" @submit.prevent="chatSend">
+          <input ref="chatInputEl" v-model="chatInput" placeholder="Escribe tu mensaje" @keydown.enter.prevent="!chatSending && chatSend()" />
+          <button type="submit" :disabled="chatSending">Enviar</button>
+        </form>
       </div>
-      <form class="chatbox__input" @submit.prevent="chatSend">
-        <input ref="chatInputEl" v-model="chatInput" placeholder="Escribe tu mensaje" @keydown.enter.prevent="!chatSending && chatSend()" />
-        <button type="submit" :disabled="chatSending">Enviar</button>
-      </form>
     </div>
-  </div>
   
   </div>
 </template>
@@ -201,7 +201,7 @@ onMounted(() => {
 .chatbox {
   position: fixed;
   right: 16px;
-  bottom: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom)); /* FAB respetando safe-area */
   z-index: 9999;
 }
 
@@ -219,7 +219,6 @@ onMounted(() => {
 
 .chatbox__panel {
   position: fixed;
-  /* estaba a la izquierda, lo movemos a la derecha sin tocar nada más */
   right: 16px;
   bottom: 16px;
   width: min(92vw, 380px);
@@ -243,6 +242,38 @@ onMounted(() => {
   }
 }
 
+/* ======== Responsive móvil como bottom-sheet con dvh y safe-area ======== */
+@media (max-width: 640px) {
+  .chatbox__panel {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .chatbox__messages {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  .chatbox__input {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .chatbox__input input {
+    font-size: 16px; /* evita zoom en iOS */
+    min-height: 48px;
+  }
+
+  .chatbox__input button {
+    min-height: 48px;
+  }
+}
+
 .chatbox__header {
   padding: 12px 16px;
   font-weight: 700;
@@ -262,7 +293,7 @@ onMounted(() => {
   font-size: 20px;
   cursor: pointer;
   line-height: 1;
-  pointer-events: none; /* la X ya no intercepta el clic */
+  pointer-events: none;
 }
 
 .chatbox__messages {
