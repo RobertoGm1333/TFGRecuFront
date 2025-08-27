@@ -692,7 +692,6 @@ async function borrarAdopcion(a: Adopcion) {
                 label="Raza"
                 variant="outlined"
                 density="comfortable"
-                clearable
                 :menu-props="{ maxHeight: 300 }"
               ></v-select>
             </v-col>

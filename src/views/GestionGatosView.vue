@@ -30,6 +30,22 @@ const gato = ref({
 
 const formularioGato = ref();
 
+// NUEVO: lista fija de razas disponibles para el selector 
+const RAZAS = [
+  'Pardo',
+  'Gris', 
+  'Tuxedo',
+  'Blanco',
+  'Naranja y negro',
+  'Blanco y pardo',
+  'Negro',
+  'Carey',
+  'Naranja',
+  'Naranja y blanco',
+  'Tricolor',
+  'Siames'
+];
+
 const headers = [
   { title: 'ID', key: 'id_Gato', align: 'start' },
   { title: 'Nombre', key: 'nombre_Gato' },
@@ -229,12 +245,15 @@ const gatosFiltrados = computed(() => {
                 />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field
+                <!-- Sustituido input de texto por selector de razas -->
+                <v-select
                   v-model="gato.raza"
+                  :items="RAZAS"
                   label="Raza"
                   :rules="[v => !!v || 'Campo obligatorio']"
                   variant="outlined"
                   density="comfortable"
+                  :menu-props="{ maxHeight: 300 }"
                 />
               </v-col>
             </v-row>
