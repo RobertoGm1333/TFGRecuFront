@@ -54,6 +54,23 @@ const formularioGato = ref<any>({
   visible: true
 })
 
+// ▼▼▼ NUEVO: lista fija de razas disponibles para el selector ▼▼▼
+const RAZAS = [
+  'Pardo',
+  'Gris', 
+  'Tuxedo',
+  'Blanco',
+  'Naranja y negro',
+  'Blanco y pardo',
+  'Negro',
+  'Carey',
+  'Naranja',
+  'Naranja y blanco',
+  'Tricolor',
+  'Siames'
+]
+// ▲▲▲ FIN NUEVO ▲▲▲
+
 const headers = [
   { title: 'ID', key: 'id_Gato' },
   { title: 'Nombre', key: 'nombre_Gato' },
@@ -668,7 +685,16 @@ async function borrarAdopcion(a: Adopcion) {
               <v-text-field v-model="formularioGato.nombre_Gato" label="Nombre" variant="outlined" density="comfortable"></v-text-field>
             </v-col>
             <v-col cols="12" sm="6">
-              <v-text-field v-model="formularioGato.raza" label="Raza" variant="outlined" density="comfortable"></v-text-field>
+              <!-- Sustituido input de texto por selector de razas -->
+              <v-select
+                v-model="formularioGato.raza"
+                :items="RAZAS"
+                label="Raza"
+                variant="outlined"
+                density="comfortable"
+                clearable
+                :menu-props="{ maxHeight: 300 }"
+              ></v-select>
             </v-col>
           </v-row>
 
