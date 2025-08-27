@@ -658,7 +658,7 @@ const gatosFiltrados = computed(() => {
   @media (min-width: 960px) {
     max-width: 1200px;
     padding: $espacio-grande;
-    margin-top: 95px;
+    margin-top: 95px; 
   }
 }
 
