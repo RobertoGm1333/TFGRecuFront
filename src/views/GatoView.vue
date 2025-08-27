@@ -187,6 +187,6 @@ const totalPaginas = computed(() => {
   .gatos-search :deep(input),
   .gatos-search :deep(.v-label) {
     color: #eaeaea;
-  }
+  } 
 }
 </style>
