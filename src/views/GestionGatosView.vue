@@ -57,8 +57,38 @@ const headers = [
   { title: 'Acciones', key: 'acciones', sortable: false, align: 'end' }
 ];
 
+// ▼▼▼ NUEVO: soporte de subida de imagen como en Admin Protectora ▼▼▼
+const archivoImagen = ref<File|null>(null)
+const fotoPreview = ref<string|null>(null)
+
+function cambioImagen(e: Event) {
+  const input = e.target as HTMLInputElement
+  if (!input.files || !input.files.length) return
+  const file = input.files[0]
+  archivoImagen.value = file
+
+  const reader = new FileReader()
+  reader.onload = () => {
+    fotoPreview.value = reader.result as string
+  }
+  reader.readAsDataURL(file)
+}
+// ▲▲▲ FIN NUEVO ▲▲▲
+
+// ▼▼▼ NUEVO: listado de Protectoras para el select ▼▼▼
+const protectoras = ref<any[]>([])
+const itemsProtectoras = computed(() =>
+  (protectoras.value || []).map((p: any) => ({
+    title: p.nombre_Protectora ?? p.nombre ?? `#${p.id_Protectora}`,
+    value: p.id_Protectora
+  }))
+)
+// ▲▲▲ FIN NUEVO ▲▲▲
+
 onMounted(async () => {
   await cargarGatos();
+  // NUEVO: cargar nombres de Protectoras
+  await cargarProtectoras();
 });
 
 async function cargarGatos() {
@@ -70,6 +100,19 @@ async function cargarGatos() {
     mensajeTipo.value = 'error';
     mensajeTexto.value = 'Error al cargar los gatos';
     mostrarMensaje.value = true;
+  }
+}
+
+// NUEVO: fetch de protectorAs
+async function cargarProtectoras() {
+  try {
+    const res = await fetch('http://localhost:5167/api/Protectora', { headers: { Accept: 'application/json' } })
+    if (!res.ok) throw new Error('Error HTTP ' + res.status)
+    const data = await res.json()
+    protectoras.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    console.error('Error al cargar las protectoras:', e)
+    protectoras.value = []
   }
 }
 
@@ -87,11 +130,17 @@ function abrirFormulario() {
     id_Protectora: 0,
     visible: true
   };
+  // NUEVO: reset de imagen
+  archivoImagen.value = null
+  fotoPreview.value = null
   mostrarDialogo.value = true;
 }
 
 function editarGato(item: any) {
   gato.value = { ...item };
+  // NUEVO: reset/preview desde URL existente (si la hay)
+  archivoImagen.value = null
+  fotoPreview.value = gato.value.imagen_Gato || null
   mostrarDialogo.value = true;
 }
 
@@ -104,13 +153,41 @@ async function guardarGato() {
     const { valid } = await formularioGato.value?.validate();
     if (!valid) return;
 
-    if (gato.value.id_Gato === 0) {
-      await gatosStore.createGato(gato.value);
-      mensajeTexto.value = 'Gato agregado exitosamente';
+    // ▼▼▼ NUEVO: si hay archivo seleccionado, subimos con FormData al backend ▼▼▼
+    if (archivoImagen.value) {
+      const creando = gato.value.id_Gato === 0
+      const url = creando
+        ? 'http://localhost:5167/api/Gato'
+        : `http://localhost:5167/api/Gato/${gato.value.id_Gato}`
+      const method = creando ? 'POST' : 'PUT'
+
+      const formData = new FormData()
+      formData.append('nombre_Gato', gato.value.nombre_Gato)
+      formData.append('raza', gato.value.raza)
+      formData.append('edad', String(gato.value.edad))
+      formData.append('sexo', gato.value.sexo)
+      formData.append('esterilizado', gato.value.esterilizado ? 'true' : 'false')
+      formData.append('descripcion_Gato', gato.value.descripcion_Gato || '')
+      formData.append('descripcion_Gato_En', gato.value.descripcion_Gato_En || '')
+      formData.append('id_Protectora', String(gato.value.id_Protectora || 0))
+      formData.append('visible', gato.value.visible ? 'true' : 'false')
+      formData.append('imagen', archivoImagen.value) // archivo real
+
+      const res = await fetch(url, { method, body: formData })
+      if (!res.ok) throw new Error('Error al guardar el gato')
+
+      mensajeTexto.value = creando ? 'Gato agregado exitosamente' : 'Gato actualizado exitosamente'
     } else {
-      await gatosStore.updateGato(gato.value);
-      mensajeTexto.value = 'Gato actualizado exitosamente';
+      // ▲▲▲ Si no hay archivo, mantenemos el flujo anterior con la URL ▲▲▲
+      if (gato.value.id_Gato === 0) {
+        await gatosStore.createGato(gato.value);
+        mensajeTexto.value = 'Gato agregado exitosamente';
+      } else {
+        await gatosStore.updateGato(gato.value);
+        mensajeTexto.value = 'Gato actualizado exitosamente';
+      }
     }
+    // ▲▲▲ FIN NUEVO ▲▲▲
     
     mensajeTipo.value = 'success';
     mostrarMensaje.value = true;
@@ -281,13 +358,17 @@ const gatosFiltrados = computed(() => {
             </v-row>
             <v-row>
               <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model.number="gato.id_Protectora"
-                  label="ID Protectora"
-                  type="number"
-                  :rules="[v => v > 0 || 'Debe ser mayor que 0']"
+                <!-- NUEVO: en vez de ID, selector por nombre de protectora -->
+                <v-select
+                  v-model="gato.id_Protectora"
+                  :items="itemsProtectoras"
+                  item-title="title"
+                  item-value="value"
+                  label="Protectora"
+                  :rules="[v => v > 0 || 'Selecciona una protectora']"
                   variant="outlined"
                   density="comfortable"
+                  :menu-props="{ maxHeight: 300 }"
                 />
               </v-col>
               <v-col cols="12" sm="6">
@@ -310,13 +391,26 @@ const gatosFiltrados = computed(() => {
               variant="outlined"
               class="mb-4"
             />
-            <v-text-field
-              v-model="gato.imagen_Gato"
-              label="URL de imagen"
-              :rules="[v => !!v || 'Campo obligatorio']"
-              variant="outlined"
-              density="comfortable"
-            />
+            <!-- ▼▼▼ NUEVO: botón de subida de imagen + preview (reemplaza URL) ▼▼▼ -->
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-file-input
+                  label="Imagen del gato"
+                  accept="image/*"
+                  variant="outlined"
+                  density="comfortable"
+                  @change="cambioImagen"
+                  clearable
+                />
+              </v-col>
+              <v-col cols="12" sm="6" class="d-flex justify-center align-center">
+                <v-avatar size="120" v-if="fotoPreview">
+                  <v-img :src="fotoPreview" alt="Preview" />
+                </v-avatar>
+                <div v-else class="text-caption">Sin imagen</div>
+              </v-col>
+            </v-row>
+            <!-- ▲▲▲ FIN NUEVO ▲▲▲ -->
             <v-checkbox v-model="gato.visible" label="Visible públicamente" />
           </v-form>
         </v-card-text>
