@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { usegatosStore } from "@/stores/gatos.ts";
 
 const gatosStore = usegatosStore();
-const gatos = ref([]);
+const gatos = ref<any[]>([]);
 const mostrarDialogo = ref(false);
 const mostrarConfirmacion = ref(false);
-const gatoAEliminar = ref(null);
+const gatoAEliminar = ref<any|null>(null);
 const mostrarMensaje = ref(false);
 const mensajeTexto = ref('');
-const mensajeTipo = ref('success');
+const mensajeTipo = ref<'success'|'error'>('success');
+
+/* NUEVO: búsqueda */
+const busqueda = ref("");
 
 const gato = ref({
   id_Gato: 0,
@@ -71,7 +74,7 @@ function abrirFormulario() {
   mostrarDialogo.value = true;
 }
 
-function editarGato(item) {
+function editarGato(item: any) {
   gato.value = { ...item };
   mostrarDialogo.value = true;
 }
@@ -105,7 +108,7 @@ async function guardarGato() {
   }
 }
 
-function pedirConfirmacion(item) {
+function pedirConfirmacion(item: any) {
   gatoAEliminar.value = item;
   mostrarConfirmacion.value = true;
 }
@@ -127,6 +130,17 @@ async function confirmarEliminacion() {
     mostrarMensaje.value = true;
   }
 }
+
+/* NUEVO: lista filtrada por búsqueda */
+const gatosFiltrados = computed(() => {
+  const q = busqueda.value.trim().toLowerCase();
+  if (!q) return gatos.value;
+  return gatos.value.filter((g: any) =>
+    (g?.nombre_Gato ?? '').toLowerCase().includes(q) ||
+    (g?.raza ?? '').toLowerCase().includes(q) ||
+    (g?.sexo ?? '').toLowerCase().includes(q)
+  );
+});
 </script>
 
 <template>
@@ -140,11 +154,24 @@ async function confirmarEliminacion() {
       </v-col>
     </v-row>
 
+    <!-- NUEVO: barra de búsqueda -->
+    <div class="px-4 mb-4">
+      <v-text-field
+        v-model="busqueda"
+        label="Buscar gato"
+        prepend-inner-icon="mdi-magnify"
+        density="comfortable"
+        variant="outlined"
+        hide-details
+        clearable
+      />
+    </div>
+
     <!-- Tabla responsive -->
     <div class="admin-view__tabla-container px-4">
       <v-data-table
         :headers="headers"
-        :items="gatos"
+        :items="gatosFiltrados"
         class="elevation-1 admin-view__tabla"
         :class="{'admin-view__tabla--mobile': $vuetify.display.smAndDown}"
       >
@@ -162,10 +189,11 @@ async function confirmarEliminacion() {
         
         <template v-slot:item.acciones="{ item }">
           <div class="admin-view__acciones">
-            <v-btn icon color="blue" @click="editarGato(item)" class="mb-2 mb-sm-0 me-sm-2">
+            <!-- Iconos circulares, solo símbolo -->
+            <v-btn icon color="blue" size="small" class="mb-2 mb-sm-0 me-sm-2" @click="editarGato(item)">
               <v-icon>mdi-pencil</v-icon>
             </v-btn>
-            <v-btn icon color="red" @click="pedirConfirmacion(item)">
+            <v-btn icon color="red" size="small" @click="pedirConfirmacion(item)">
               <v-icon>mdi-delete</v-icon>
             </v-btn>
           </div>
@@ -415,20 +443,14 @@ async function confirmarEliminacion() {
     justify-content: flex-end;
     padding: 0;
 
-    /* Botones de acción circulares, solo icono */
     .v-btn {
-      border-radius: 50% !important;
-      width: 36px !important;
+      min-width: 40px !important;
+      padding: 0 12px !important;
       height: 36px !important;
-      min-width: 36px !important;
-      padding: 0 !important;
-    }
 
-    @media (min-width: 600px) {
-      .v-btn {
-        width: 40px !important;
-        height: 40px !important;
+      @media (min-width: 600px) {
         min-width: 40px !important;
+        padding: 0 12px !important;
       }
     }
   }
