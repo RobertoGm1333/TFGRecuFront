@@ -134,6 +134,9 @@ onMounted(async () => {
     await cargarSolicitudes()
     await cargarAdopciones()
     await cargarSerieGrafica()
+
+    // === EVENTOS ===
+    await cargarEventos()
   } catch (err) {
     console.error("Error cargando datos de la protectora:", err);
   }
@@ -528,6 +531,179 @@ async function borrarAdopcion(a: Adopcion) {
   }
 }
 /* ===================================================================== */
+
+/* =====================================================================
+   === EVENTOS: listado + formulario con subida de imagen ==============
+   ===================================================================== */
+const eventos = ref<any[]>([])
+const headersEventos = [
+  { title: 'ID', key: 'Id_Evento' },
+  { title: 'Nombre', key: 'Nombre_Evento' },
+  { title: 'Lugar', key: 'Lugar' },
+  { title: 'Fecha', key: 'Fecha_Evento' },
+  { title: 'Foto', key: 'Foto_Evento' },
+  { title: 'Acciones', key: 'acciones', sortable: false }
+]
+
+const mostrarDialogoEvento = ref(false)
+const mostrarConfirmacionEvento = ref(false)
+const eventoAEliminar = ref<any>(null)
+
+const formularioEvento = ref<any>({
+  Id_Evento: 0,
+  Id_Protectora: null,
+  Nombre_Evento: '',
+  Lugar: '',
+  Fecha_Evento: new Date().toISOString().slice(0,10),
+  Hora_Evento: '12:00',
+  Descripcion_Evento: '',
+  EnclaceMaps: '',
+  Foto_Evento: null
+})
+
+const fotoPreviewEvento = ref<string | null>(null)
+const archivoFotoEvento = ref<File | null>(null)
+
+// Normaliza las propiedades que llegan del API (snake/camel/casing) a las que usa la UI.
+function normalizaEvento(e: any) {
+  return {
+    Id_Evento: e.Id_Evento ?? e.id_Evento ?? e.ID_Evento,
+    Id_Protectora: e.Id_Protectora ?? e.id_Protectora,
+    Nombre_Evento: e.Nombre_Evento ?? e.nombre_Evento,
+    Lugar: e.Lugar ?? e.lugar ?? '',
+    Fecha_Evento: e.Fecha_Evento ?? e.fecha_Evento ?? '',
+    Hora_Evento: e.Hora_Evento ?? e.hora_Evento ?? '',
+    Descripcion_Evento: e.Descripcion_Evento ?? e.descripcion_Evento ?? '',
+    EnclaceMaps: e.EnclaceMaps ?? e.enclaceMaps ?? e.enlaceMaps ?? '',
+    Foto_Evento: e.Foto_Evento ?? e.foto_Evento ?? e.foto ?? null,
+  }
+}
+
+async function cargarEventos() {
+  if (!idProtectora.value) return
+  try {
+    const res = await fetch(`http://localhost:5167/api/Evento/protectora/${idProtectora.value}`)
+    if (!res.ok) throw new Error('Error HTTP ' + res.status)
+    const list = await res.json()
+    eventos.value = (Array.isArray(list) ? list : []).map(normalizaEvento)
+  } catch (e) {
+    console.error('Error cargando eventos:', e)
+    eventos.value = []
+  }
+}
+
+function abrirFormularioEvento() {
+  if (!idProtectora.value) return
+  formularioEvento.value = {
+    Id_Evento: 0,
+    Id_Protectora: idProtectora.value,
+    Nombre_Evento: '',
+    Lugar: '',
+    Fecha_Evento: new Date().toISOString().slice(0,10),
+    Hora_Evento: '12:00',
+    Descripcion_Evento: '',
+    EnclaceMaps: '',
+    Foto_Evento: null
+  }
+  archivoFotoEvento.value = null
+  fotoPreviewEvento.value = null
+  mostrarDialogoEvento.value = true
+}
+
+function editarEvento(item: any) {
+  formularioEvento.value = {
+    Id_Evento: item.Id_Evento,
+    Id_Protectora: item.Id_Protectora,
+    Nombre_Evento: item.Nombre_Evento,
+    Lugar: item.Lugar,
+    Fecha_Evento: (item.Fecha_Evento || '').slice(0,10),
+    Hora_Evento: (item.Hora_Evento || '12:00').toString().slice(0,5),
+    Descripcion_Evento: item.Descripcion_Evento || '',
+    EnclaceMaps: item.EnclaceMaps || '',
+    Foto_Evento: item.Foto_Evento || null
+  }
+  archivoFotoEvento.value = null
+  fotoPreviewEvento.value = item.Foto_Evento ? `http://localhost:5167/${String(item.Foto_Evento).replace(/^\/+/, '')}` : null
+  mostrarDialogoEvento.value = true
+}
+
+function confirmarEliminarEvento(item: any) {
+  eventoAEliminar.value = item
+  mostrarConfirmacionEvento.value = true
+}
+
+async function eliminarEvento() {
+  if (!eventoAEliminar.value) return
+  try {
+    const res = await fetch(`http://localhost:5167/api/Evento/${eventoAEliminar.value.Id_Evento}`, { method: 'DELETE' })
+    if (!res.ok) throw new Error('Error HTTP ' + res.status)
+    eventos.value = eventos.value.filter(e => e.Id_Evento !== eventoAEliminar.value.Id_Evento)
+    mensaje('Evento eliminado', 'success')
+  } catch (e: any) {
+    mensaje(e?.message ?? 'No se pudo eliminar el evento', 'error')
+  } finally {
+    mostrarConfirmacionEvento.value = false
+  }
+}
+
+function cambioFotoEvento(e: Event) {
+  const input = e.target as HTMLInputElement
+  if (!input.files || !input.files.length) return
+  const file = input.files[0]
+  archivoFotoEvento.value = file
+
+  const reader = new FileReader()
+  reader.onload = () => { fotoPreviewEvento.value = reader.result as string }
+  reader.readAsDataURL(file)
+}
+
+async function guardarEvento() {
+  try {
+    const creando = !(formularioEvento.value.Id_Evento && formularioEvento.value.Id_Evento !== 0)
+    let url = 'http://localhost:5167/api/Evento'
+    let method = 'POST'
+    if (!creando) {
+      url = `http://localhost:5167/api/Evento/${formularioEvento.value.Id_Evento}`
+      method = 'PUT'
+    }
+
+    const fd = new FormData()
+    fd.append('Id_Protectora', String(formularioEvento.value.Id_Protectora))
+    fd.append('Nombre_Evento', formularioEvento.value.Nombre_Evento || '')
+    fd.append('Lugar', formularioEvento.value.Lugar || '')
+    fd.append('Fecha_Evento', formularioEvento.value.Fecha_Evento || '')
+    // Hora_Evento: el controller espera TimeSpan → formato HH:mm
+    fd.append('Hora_Evento', (formularioEvento.value.Hora_Evento || '12:00').toString().slice(0,5))
+    fd.append('Descripcion_Evento', formularioEvento.value.Descripcion_Evento || '')
+    if (formularioEvento.value.EnclaceMaps) fd.append('EnclaceMaps', formularioEvento.value.EnclaceMaps)
+    if (archivoFotoEvento.value) fd.append('Foto', archivoFotoEvento.value)
+
+    const res = await fetch(url, { method, body: fd })
+    if (!res.ok) throw new Error('Error HTTP ' + res.status)
+
+    if (creando) {
+      const saved = await res.json()
+      eventos.value.push(normalizaEvento(saved))   // 👈 guardamos normalizado
+    } else {
+      // PUT puede devolver 204 (NoContent). Si no hay body, recargamos.
+      try {
+        const updated = await res.json()
+        const norm = normalizaEvento(updated)
+        const i = eventos.value.findIndex(e => e.Id_Evento === norm.Id_Evento)
+        if (i !== -1) eventos.value[i] = norm
+        else await cargarEventos()
+      } catch {
+        await cargarEventos()
+      }
+    }
+
+    mensaje('Evento guardado', 'success')
+    mostrarDialogoEvento.value = false
+  } catch (e: any) {
+    mensaje(e?.message ?? 'No se pudo guardar el evento', 'error')
+  }
+}
+/* ===================================================================== */
 </script>
 
 <template>
@@ -572,6 +748,45 @@ async function borrarAdopcion(a: Adopcion) {
         </template>
       </v-data-table>
     </div>
+
+    <!-- === EVENTOS: Listado y botón crear === -->
+    <v-container fluid class="protectora-admin__solicitudes px-4 mt-8">
+      <div class="d-flex align-center justify-space-between">
+        <h2 class="protectora-admin__subtitulo">Eventos de protectora</h2>
+        <v-btn color="primary" variant="tonal" prepend-icon="mdi-plus" @click="abrirFormularioEvento">Nuevo evento</v-btn>
+      </div>
+
+      <v-data-table
+        :headers="headersEventos"
+        :items="eventos"
+        class="elevation-1 protectora-admin__tabla mt-3"
+        density="comfortable"
+        item-value="Id_Evento"
+        :items-per-page="10"
+      >
+        <!-- ✅ usar item directo -->
+        <template #item.Fecha_Evento="{ item }">
+          {{ item?.Fecha_Evento ? new Date(item.Fecha_Evento).toLocaleDateString() : '—' }}
+        </template>
+
+        <template #item.Foto_Evento="{ item }">
+          <v-avatar size="44" v-if="item?.Foto_Evento">
+            <v-img :src="`http://localhost:5167/${String(item.Foto_Evento).replace(/^\/+/, '')}`" alt="foto evento" />
+          </v-avatar>
+          <span v-else class="text-disabled">—</span>
+        </template>
+
+        <template #item.acciones="{ item }">
+          <v-btn icon="mdi-pencil" size="small" class="mr-2" @click="editarEvento(item)"></v-btn>
+          <v-btn icon="mdi-delete" size="small" color="error" @click="confirmarEliminarEvento(item)"></v-btn>
+        </template>
+
+        <template #no-data>
+          <div class="text-center pa-6">No hay eventos registrados.</div>
+        </template>
+      </v-data-table>
+    </v-container>
+    <!-- === /EVENTOS === -->
 
     <v-container fluid class="protectora-admin__solicitudes px-4">
       <h2 class="protectora-admin__subtitulo">Solicitudes de adopción</h2>
@@ -780,6 +995,72 @@ async function borrarAdopcion(a: Adopcion) {
       </v-card>
     </v-dialog>
 
+    <!-- === EVENTOS: Diálogo crear/editar === -->
+    <v-dialog v-model="mostrarDialogoEvento" max-width="720">
+      <v-card class="protectora-admin__dialogo">
+        <v-card-title>Evento</v-card-title>
+        <v-card-text>
+          <v-row>
+            <v-col cols="12" sm="7">
+              <v-text-field v-model="formularioEvento.Nombre_Evento" label="Nombre del evento" variant="outlined" density="comfortable" />
+            </v-col>
+            <v-col cols="12" sm="5">
+              <v-text-field v-model="formularioEvento.Lugar" label="Lugar" variant="outlined" density="comfortable" />
+            </v-col>
+          </v-row>
+
+          <v-row>
+            <v-col cols="12" sm="6">
+              <v-text-field v-model="formularioEvento.Fecha_Evento" type="date" label="Fecha" variant="outlined" density="comfortable" />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-text-field v-model="formularioEvento.Hora_Evento" type="time" label="Hora" variant="outlined" density="comfortable" />
+            </v-col>
+          </v-row>
+
+          <v-row>
+            <v-col cols="12">
+              <v-textarea v-model="formularioEvento.Descripcion_Evento" label="Descripción / Objetivo" variant="outlined" density="comfortable" auto-grow rows="3" />
+            </v-col>
+          </v-row>
+
+          <v-row>
+            <v-col cols="12" sm="6">
+              <v-text-field v-model="formularioEvento.EnclaceMaps" label="Enlace de Google Maps (opcional)" variant="outlined" density="comfortable" />
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-file-input label="Foto del evento" accept="image/*" variant="outlined" density="comfortable" @change="cambioFotoEvento" />
+            </v-col>
+          </v-row>
+
+          <v-row>
+            <v-col cols="12" class="d-flex justify-center">
+              <v-avatar size="140" v-if="fotoPreviewEvento">
+                <v-img :src="fotoPreviewEvento" alt="Preview evento" />
+              </v-avatar>
+              <div v-else class="text-caption">Sin foto</div>
+            </v-col>
+          </v-row>
+        </v-card-text>
+        <v-card-actions class="justify-end">
+          <v-btn variant="text" @click="mostrarDialogoEvento = false">Cancelar</v-btn>
+          <v-btn color="primary" @click="guardarEvento">Guardar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Confirmar borrado evento -->
+    <v-dialog v-model="mostrarConfirmacionEvento" max-width="500">
+      <v-card>
+        <v-card-title>Confirmar eliminación</v-card-title>
+        <v-card-text>¿Seguro que deseas eliminar este evento?</v-card-text>
+        <v-card-actions class="justify-end">
+          <v-btn variant="text" @click="mostrarConfirmacionEvento = false">Cancelar</v-btn>
+          <v-btn color="error" @click="eliminarEvento">Eliminar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-snackbar v-model="mensajeSnack" :timeout="3000" :color="mensajeTipo">
       {{ mensajeTexto }}
     </v-snackbar>
@@ -906,34 +1187,6 @@ async function borrarAdopcion(a: Adopcion) {
             </v-col>
             <v-col cols="12" sm="6">
               <v-checkbox :model-value="solicitudesStore.solicitudSeleccionada?.vallasSeguras" label="¿Tiene vallas seguras?" readonly disabled></v-checkbox>
-            </v-col>
-          </v-row>
-
-          <h3 class="mb-4 mt-6">Experiencia y Convivencia</h3>
-          <v-row>
-            <v-col cols="12" sm="6">
-              <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.experienciaConGatos" label="Experiencia con gatos" readonly variant="outlined" density="comfortable"></v-text-field>
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.alergiasHogar" label="Alergias en el hogar" readonly variant="outlined" density="comfortable"></v-text-field>
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col cols="12" sm="6">
-              <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.personasEnCasa" label="Número de personas en casa" readonly variant="outlined" density="comfortable"></v-text-field>
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field :model-value="solicitudesStore.solicitudSeleccionada?.ninosEnCasa" label="¿Hay niños en casa?" readonly variant="outlined" density="comfortable"></v-text-field>
-            </v-col>
-          </v-row>
-
-          <h3 class="mb-4 mt-6">Seguimiento</h3>
-          <v-row>
-            <v-col cols="12" sm="6">
-              <v-checkbox :model-value="solicitudesStore.solicitudSeleccionada?.seguimientoPostAdopcion" label="¿Acepta seguimiento post-adopción?" readonly disabled></v-checkbox>
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-checkbox :model-value="solicitudesStore.solicitudSeleccionada?.visitaHogar" label="¿Acepta visita al hogar?" readonly disabled></v-checkbox>
             </v-col>
           </v-row>
         </v-card-text>

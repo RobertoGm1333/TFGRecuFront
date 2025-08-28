@@ -21,6 +21,7 @@ import ControlReproduccion from '@/views/ControlReproduccionView.vue'
 import GestionUsuariosView from '../views/GestionUsuariosView.vue'
 import GestionAdopcionesView from '@/views/GestionAdopcionesView.vue'
 import { useAutenticacion } from '@/stores/Autentificacion'
+import EventosView from '@/views/EventosView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -50,6 +51,11 @@ const router = createRouter({
       path: '/gato',
       name: 'gato',
       component: GatoView,
+    },
+    {
+      path: '/eventos',
+      name: 'eventos',
+      component: EventosView,
     },
     {
       path: "/faq",
