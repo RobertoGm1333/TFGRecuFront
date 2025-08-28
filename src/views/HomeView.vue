@@ -217,7 +217,7 @@ const { t } = useI18n()
 
   .logo-container {
     font-size: 2.8rem;
-    margin-top: 92px;
+    margin-top: 42px;
   }
 
   .quienes-somos {
@@ -229,8 +229,6 @@ const { t } = useI18n()
     padding: $espacio-mediano $espacio-grande;
   }
 
-  .testimonios {
-  }
 }
 
 @media (max-width: 480px) {
