@@ -249,7 +249,7 @@ const { t } = useI18n()
     font-size: 0.95rem;
     line-height: 1.5;
   }
-
+ 
   .cta-button {
     font-size: 1rem;
     padding: $espacio-mediano 16px;
