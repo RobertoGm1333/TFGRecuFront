@@ -191,7 +191,7 @@ function resetPaw(ctx: CanvasRenderingContext2D) {
         <nav class="desktop-nav">
           <RouterLink to="/gato">{{ t('gatos') }}</RouterLink>
           <RouterLink to="/protectoras">{{ t('protectoras') }}</RouterLink>
-          <RouterLink to="/consejos-expertos">{{ t('consejos_expertos') }}</RouterLink>
+          <RouterLink to="/eventos">{{ t('Eventos') }}</RouterLink>
         </nav>
         
         <!-- Botón hamburguesa para móvil -->
@@ -214,7 +214,7 @@ function resetPaw(ctx: CanvasRenderingContext2D) {
         >
           <RouterLink to="/gato" @click="cerrarMenuHamburguesa">{{ t('gatos') }}</RouterLink>
           <RouterLink to="/protectoras" @click="cerrarMenuHamburguesa">{{ t('protectoras') }}</RouterLink>
-          <RouterLink to="/consejos-expertos" @click="cerrarMenuHamburguesa">{{ t('consejos_expertos') }}</RouterLink>
+          <RouterLink to="/eventos" @click="cerrarMenuHamburguesa">{{ t('Eventos') }}</RouterLink>
         </nav>
 
         <div class="usuario-section">
