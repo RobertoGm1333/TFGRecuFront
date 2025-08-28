@@ -130,43 +130,43 @@ onMounted(async () => {
     </div>
 
     <div v-else class="grid">
-      <article
+      <RouterLink
         v-for="ev in eventos"
         :key="ev.Id_Evento"
-        class="card"
+        :to="`/eventos/${ev.Id_Evento}`"
+        class="card-link"
       >
-        <div class="card__media">
-          <img :src="imgUrl(ev.Foto_Evento)" :alt="ev.Nombre_Evento" />
-        </div>
-
-        <div class="card__body">
-          <!-- Fila: Título (izq) + Fecha (der) -->
-          <div class="title-row">
-            <h3 class="card__title">{{ ev.Nombre_Evento }}</h3>
-            <div class="card__date">{{ formatDate(ev.Fecha_Evento) }}</div>
+        <article class="card">
+          <div class="card__media">
+            <img :src="imgUrl(ev.Foto_Evento)" :alt="ev.Nombre_Evento" />
           </div>
 
-          <!-- Lugar -->
-          <dl class="meta">
-            <div class="meta__row">
-              <dt>Lugar</dt>
-              <dd>{{ ev.Lugar }}</dd>
+          <div class="card__body">
+            <!-- Fila: Título (izq) + Fecha (der) -->
+            <div class="title-row">
+              <h3 class="card__title">{{ ev.Nombre_Evento }}</h3>
+              <div class="card__date">{{ formatDate(ev.Fecha_Evento) }}</div>
             </div>
-            <div class="meta__row">
-              <dt>Protectora</dt>
-              <dd>
-                <span v-if="protectorasCache[ev.Id_Protectora]">
-                  {{ protectorasCache[ev.Id_Protectora] }}
-                </span>
-                <span v-else class="skeleton skeleton--text" />
-              </dd>
-            </div>
-          </dl>
 
-          <!-- CTA para detalles (lo implementaremos luego) -->
-          <!-- <RouterLink :to="`/eventos/${ev.Id_Evento}`" class="btn">Ver detalles</RouterLink> -->
-        </div>
-      </article>
+            <!-- Lugar -->
+            <dl class="meta">
+              <div class="meta__row">
+                <dt>Lugar</dt>
+                <dd>{{ ev.Lugar }}</dd>
+              </div>
+              <div class="meta__row">
+                <dt>Protectora</dt>
+                <dd>
+                  <span v-if="protectorasCache[ev.Id_Protectora]">
+                    {{ protectorasCache[ev.Id_Protectora] }}
+                  </span>
+                  <span v-else class="skeleton skeleton--text" />
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </article>
+      </RouterLink>
 
       <div v-if="!eventos.length" class="state state--empty">
         No hay eventos publicados por ahora.
@@ -232,6 +232,10 @@ onMounted(async () => {
 }
 
 /* === Tarjeta === */
+.card-link {
+  text-decoration: none;
+  color: inherit;
+}
 .card {
   display: grid;
   grid-template-rows: auto 1fr;
@@ -240,13 +244,13 @@ onMounted(async () => {
   overflow: hidden;
   box-shadow: 0 6px 24px rgba(0,0,0,0.28);
   transition: transform .18s ease, box-shadow .18s ease;
+  cursor: pointer;
 }
 .card:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 30px rgba(0,0,0,0.36);
 }
 .card__media {
-  /* un poco más alta */
   aspect-ratio: 16 / 9;
   background: rgba(0,0,0,.2);
 }

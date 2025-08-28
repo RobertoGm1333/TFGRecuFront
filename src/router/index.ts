@@ -22,6 +22,7 @@ import GestionUsuariosView from '../views/GestionUsuariosView.vue'
 import GestionAdopcionesView from '@/views/GestionAdopcionesView.vue'
 import { useAutenticacion } from '@/stores/Autentificacion'
 import EventosView from '@/views/EventosView.vue'
+import DetalleEventoView from '@/views/DetallesEventoView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -56,6 +57,11 @@ const router = createRouter({
       path: '/eventos',
       name: 'eventos',
       component: EventosView,
+    },
+    {
+      path: '/eventos/:id',
+      name: 'detalle-evento',
+      component: () => import('@/views/DetallesEventoView.vue')
     },
     {
       path: "/faq",
