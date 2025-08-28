@@ -224,7 +224,7 @@ function resetPaw(ctx: CanvasRenderingContext2D) {
               <img 
                 :src="idioma === 'es' ? esFlag : gbFlag" 
                 :alt="idioma === 'es' ? 'Español' : 'English'"
-                class="bandera"
+                class="bandera" 
               >
               <span class="idioma-texto">{{ idioma.toUpperCase() }}</span>
             </button>
