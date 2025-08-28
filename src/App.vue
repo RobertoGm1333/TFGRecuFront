@@ -75,7 +75,14 @@ const chatScrollBottom = async () => {
 
 const chatOpenPanel = async () => {
   chatOpen.value = true
-  chatSave()
+  // Mensaje de bienvenida si es la primera vez que se abre
+  if (chatMessages.value.length === 0) {
+    chatMessages.value.push({
+      role: 'assistant',
+      text: '¡Hola! Soy Catherine 🐾 Tu asistente para adopciones. ¿Buscas algún tipo de gato o información de alguna protectora?'
+    })
+    chatSave()
+  }
   await chatScrollBottom()
   await nextTick()
   chatInputEl.value?.focus()

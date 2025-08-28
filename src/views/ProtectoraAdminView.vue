@@ -1044,7 +1044,7 @@ async function borrarAdopcion(a: Adopcion) {
 $color-fondo: #f8f9fb;
 $color-texto: #1e293b;
 $color-primario: #FF5500;
-$color-secundario: #FB7C3C;
+$color-rojo: #FB7C3C;
 $color-borde: #e2e8f0;
 $color-muted: #64748b;
 $color-tarjeta: #ffffff;
@@ -1066,7 +1066,7 @@ $color-blanco: #ffffff;
   }
 
   &__boton {
-    background: linear-gradient(90deg, $color-primario, $color-secundario);
+    background: linear-gradient(90deg, $color-primario, $color-rojo);
     color: $color-blanco;
     font-weight: 600;
   }
