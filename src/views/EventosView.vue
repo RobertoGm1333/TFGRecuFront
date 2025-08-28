@@ -6,7 +6,7 @@ type Evento = {
   Id_Protectora: number
   Nombre_Evento: string
   Lugar: string
-  Fecha_Evento: string // viene como ISO de la API (DATE)
+  Fecha_Evento: string 
   Hora_Evento?: string
   Descripcion_Evento?: string
   EnclaceMaps?: string | null
@@ -33,11 +33,27 @@ const imgUrl = (ruta?: string | null) =>
 
 const formatDate = (iso: string) => {
   try {
-    // El backend manda DATE → parse seguro como local
-    const d = new Date(iso + 'T00:00:00')
+    // El backend puede mandar DATE ("2025-09-07") o DATETIME ("2025-09-07T00:00:00")
+    const normalized = /\dT\d/.test(iso) ? iso : `${iso}T00:00:00`
+    const d = new Date(normalized)
     return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }).format(d)
   } catch {
     return iso
+  }
+}
+
+// Normaliza el shape que devuelve la API (snake/camel/lowercase) al que usa la UI.
+function normalizaEvento(e: any): Evento {
+  return {
+    Id_Evento: e.Id_Evento ?? e.id_Evento ?? e.ID_Evento,
+    Id_Protectora: e.Id_Protectora ?? e.id_Protectora,
+    Nombre_Evento: e.Nombre_Evento ?? e.nombre_Evento,
+    Lugar: e.Lugar ?? e.lugar ?? '',
+    Fecha_Evento: e.Fecha_Evento ?? e.fecha_Evento ?? '',
+    Hora_Evento: e.Hora_Evento ?? e.hora_Evento ?? '',
+    Descripcion_Evento: e.Descripcion_Evento ?? e.descripcion_Evento ?? '',
+    EnclaceMaps: e.EnclaceMaps ?? e.enclaceMaps ?? e.enlaceMaps ?? null,
+    Foto_Evento: e.Foto_Evento ?? e.foto_Evento ?? e.foto ?? null,
   }
 }
 
@@ -49,7 +65,8 @@ async function fetchEventos () {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json()
     // La API devuelve array plano (según tu repo/ctrl)
-    eventos.value = Array.isArray(data) ? data : (data?.items ?? [])
+    const arr = Array.isArray(data) ? data : (data?.items ?? [])
+    eventos.value = arr.map(normalizaEvento)
   } catch (e: any) {
     errorMsg.value = 'No se pudieron cargar los eventos. Inténtalo más tarde.'
     console.error(e)
@@ -65,8 +82,15 @@ async function getProtectoraName (id: number): Promise<string> {
   try {
     const res = await fetch(`${API_BASE}/api/Protectora/${id}`)
     if (!res.ok) throw new Error('404')
-    const p: Protectora = await res.json()
-    const nombre = (p?.Nombre && p.Nombre.trim()) ? p.Nombre : `Protectora #${id}`
+    const p: any = await res.json()
+    // Intentamos varios nombres de propiedad habituales
+    const nombre =
+      (p?.Nombre && p.Nombre.trim()) ||
+      (p?.nombre && String(p.nombre).trim()) ||
+      (p?.Nombre_Protectora && String(p.Nombre_Protectora).trim()) ||
+      (p?.nombre_Protectora && String(p.nombre_Protectora).trim()) ||
+      `Protectora #${id}`
+
     protectorasCache.value[id] = nombre
     return nombre
   } catch {
@@ -92,9 +116,9 @@ onMounted(async () => {
   <div class="eventos-page">
     <header class="eventos-header">
       <h1>Eventos de protectoras</h1>
-      <p class="intro">
+      <h2 class="intro">
         Descubre actividades, jornadas y campañas organizadas por las protectoras.
-      </p>
+      </h2>
     </header>
 
     <div v-if="loading" class="state state--loading">
@@ -116,13 +140,14 @@ onMounted(async () => {
         </div>
 
         <div class="card__body">
-          <h3 class="card__title">{{ ev.Nombre_Evento }}</h3>
+          <!-- Fila: Título (izq) + Fecha (der) -->
+          <div class="title-row">
+            <h3 class="card__title">{{ ev.Nombre_Evento }}</h3>
+            <div class="card__date">{{ formatDate(ev.Fecha_Evento) }}</div>
+          </div>
 
+          <!-- Lugar -->
           <dl class="meta">
-            <div class="meta__row">
-              <dt>Fecha</dt>
-              <dd>{{ formatDate(ev.Fecha_Evento) }}</dd>
-            </div>
             <div class="meta__row">
               <dt>Lugar</dt>
               <dd>{{ ev.Lugar }}</dd>
@@ -150,14 +175,23 @@ onMounted(async () => {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
+/* === Contenedor principal === */
+/* PC un poco más estrecho y con más separación */
 .eventos-page {
-  max-width: 1200px;
+  max-width: 640px; /* ↓ más estrecho que antes */
   margin: 0 auto;
-  padding: clamp(16px, 2vw, 24px);
+  padding: clamp(12px, 2vw, 24px); /* reduce padding superior en general */
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
 }
 
+/* En móviles quitamos margen visual arriba (compacto bajo el header de la web) */
+@media (max-width: 600px) {
+  .eventos-page { padding-top: 6px; }
+  .eventos-header { margin-bottom: 10px; }
+}
+
+/* === Cabecera === */
 .eventos-header {
   text-align: center;
   margin-bottom: clamp(16px, 3vw, 28px);
@@ -166,7 +200,7 @@ onMounted(async () => {
 .eventos-header h1 {
   font-size: clamp(1.6rem, 2.5vw, 2.2rem);
   margin: 0 0 6px;
-  color: #eee;
+  color: $color-principal;
 }
 
 .intro {
@@ -175,7 +209,7 @@ onMounted(async () => {
   margin: 0;
 }
 
-/* estados */
+/* === Estados === */
 .state {
   text-align: center;
   padding: 32px 12px;
@@ -186,35 +220,34 @@ onMounted(async () => {
 .state--error { color: #ffb4a9; background: rgba(255, 86, 48, 0.08); }
 .state--empty { color: #bbb; }
 
-/* grid de cards */
+/* === Grid: una por fila siempre === */
 .grid {
   display: grid;
-  gap: clamp(12px, 2vw, 20px);
+  gap: clamp(16px, 2.4vw, 26px); /* más gap base */
   grid-template-columns: 1fr;
 }
-@media (min-width: 700px) {
-  .grid { grid-template-columns: repeat(2, 1fr); }
-}
+/* Más gap en pantallas grandes */
 @media (min-width: 1024px) {
-  .grid { grid-template-columns: repeat(3, 1fr); }
+  .grid { gap: 45px; }
 }
 
-/* card */
+/* === Tarjeta === */
 .card {
   display: grid;
   grid-template-rows: auto 1fr;
   background: rgba(255,255,255,0.06);
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.28);
   transition: transform .18s ease, box-shadow .18s ease;
 }
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.36);
 }
 .card__media {
-  aspect-ratio: 16 / 10;
+  /* un poco más alta */
+  aspect-ratio: 16 / 9;
   background: rgba(0,0,0,.2);
 }
 .card__media img {
@@ -224,35 +257,51 @@ onMounted(async () => {
   display: block;
 }
 .card__body {
-  padding: 14px 14px 16px;
+  padding: 18px 18px 20px;
+}
+
+/* Fila de Título a la izquierda y Fecha a la derecha */
+.title-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 12px;
 }
 .card__title {
-  margin: 0 0 10px;
-  font-size: 1.05rem;
+  margin: 0;
+  font-size: 1.32rem;
   color: #fff;
+}
+.card__date {
+  color: #eaeaea;
+  font-weight: 600;
+  white-space: nowrap;
+  font-size: 1rem;
+  opacity: .95;
 }
 
 /* metadata */
 .meta {
   margin: 0;
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 .meta__row {
   display: grid;
-  grid-template-columns: 92px 1fr;
-  gap: 8px;
+  grid-template-columns: 120px 1fr;
+  gap: 10px;
   align-items: baseline;
 }
 .meta dt {
   color: #b9b9b9;
-  font-weight: 600;
-  font-size: .9rem;
+  font-weight: 700;
+  font-size: 1rem;
 }
 .meta dd {
   margin: 0;
   color: #eaeaea;
-  font-size: .95rem;
+  font-size: 1.02rem;
 }
 
 /* esqueletos para protectora mientras carga nombre */
@@ -263,7 +312,7 @@ onMounted(async () => {
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 }
-.skeleton--text { width: 160px; height: 0.9rem; }
+.skeleton--text { width: 200px; height: 1rem; }
 
 @keyframes shimmer {
   0% { background-position: 200% 0; }
@@ -273,8 +322,8 @@ onMounted(async () => {
 /* botón (por si activas detalles) */
 .btn {
   display: inline-block;
-  margin-top: 12px;
-  padding: 10px 14px;
+  margin-top: 14px;
+  padding: 12px 16px;
   border-radius: 999px;
   background: #ff6a2b;
   color: #fff;
