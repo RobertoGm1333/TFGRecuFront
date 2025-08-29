@@ -323,6 +323,11 @@ function resetPaw(ctx: CanvasRenderingContext2D) {
 </template>
 
 <style scoped lang="scss">
+/* ====== FIX OVERFLOW GLOBAL: evita scroll horizontal ====== */
+*, *::before, *::after { box-sizing: border-box; }
+:root, html, body { width: 100%; max-width: 100%; overflow-x: hidden; } /* clave */
+main { width: 100%; overflow-x: hidden; }                                 /* clave */
+
 header {
   font-family: $fuente-titulos;
   display: flex;
@@ -346,6 +351,13 @@ header {
   flex: 1;
   margin-left: 20px;
   position: relative;
+}
+
+/* ====== FIX FLEX: deja que los hijos se encojan ====== */
+.header-content,
+.usuario-section,
+.desktop-nav { 
+  min-width: 0;   /* clave para evitar desbordes de texto/links */
 }
 
 .desktop-nav {
@@ -759,7 +771,65 @@ canvas {
   }
 }
 
-// Responsive
+/* ===== MOVIL: apilar Iniciar sesión / Registrarse Y evitar overflow ===== */
+@media (max-width: 767px) {
+  header {
+    padding: 12px 12px;                 /* menos padding lateral */
+  }
+
+  .header-content {
+    margin-left: 12px;                  /* era 20px, así no empuja el ancho */
+  }
+
+  .menu-hamburguesa {
+    left: 12px;                         /* márgenes internos para no salirse */
+    right: 12px;
+  }
+
+  /* >>> CAMBIO PRINCIPAL: idioma al lado de los auth-links <<< */
+  .usuario-section {
+    flex-direction: row;                /* antes: column → ahora en fila */
+    align-items: flex-start;            /* alinea arriba para que encaje con el bloque de links */
+    justify-content: flex-end;          /* pegado a la derecha */
+    gap: 10px;                          /* pequeño espacio entre idioma y links */
+  }
+
+  .usuario {
+    display: flex;
+    flex-direction: column;             /* los enlaces siguen apilados en vertical */
+    align-items: flex-end;              /* alinea a la derecha */
+    gap: 4px;
+  }
+
+  .auth-link {
+    display: block;                     /* cada enlace en su propia línea */
+    padding: 6px 10px;                  /* compacto */
+    text-align: right;
+    font-size: 0.9rem;
+    white-space: normal;                /* permite salto de línea si hace falta */
+  }
+
+  .idioma-btn {
+    padding: 6px 8px;                   /* compacto para no empujar layout */
+  }
+
+  canvas {
+    width: 64px;
+    height: 64px;                       /* el logo no forzará el ancho */
+    max-width: 100%;
+  }
+}
+
+/* ===== Recomendado: cortar textos largos para que no “empujen” ===== */
+.usuario-nombre,
+.desktop-nav a,
+.menu-option,
+.auth-link {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+  
+/* Responsive */
 @media (min-width: 768px) {
   header {
     padding: 15px $espacio-extra-grande;

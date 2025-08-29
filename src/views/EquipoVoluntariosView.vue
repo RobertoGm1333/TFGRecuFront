@@ -38,10 +38,10 @@ const equipo = ref<Miembro[]>([
   },
   {
     id: 4,
-    nombre: 'Roberto Gómez',
+    nombre: 'Rober G.',
     rol: 'Coordinador con las protectoras',
     bio: 'Encargado de mantener el contacto con las protectoras y delegar el uso de cada cuenta correspondiente.',
-    foto: '../../Images/Equipo/Roberto.png',
+    foto: '../../Images/Equipo/RobertoBigote.png',
   }
 ])
 

@@ -46,8 +46,8 @@ export default defineComponent({
 .admin-vista {
   max-width: 900px;
   margin: 40px auto;
-  margin-top: 60px;
-  padding: $espacio-grande;
+  margin-top: 0; padding-top: 96px;
+  padding: $espacio-mediano;
   text-align: center;
 
   &__titulo {
@@ -88,7 +88,7 @@ export default defineComponent({
     transition: background-color 0.3s ease, transform 0.2s;
     font-size: 1rem;
     font-weight: bold;
-    min-width: 220px;
+    min-width: 0; width: 100%;
 
     &:hover {
       background-color: $color-principal-oscuro;
@@ -110,4 +110,48 @@ export default defineComponent({
     }
   }
 }
+/* ==== FIX MOVIL AdminView: caja estrecha y sin solaparse con header ==== */
+@media (max-width: 600px) {
+  .admin-vista {
+    max-width: 540px;
+    margin: 0 auto;
+    padding-top: 88px; /* en móvil, separa del header fijo */
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .admin-vista__titulo {
+    font-size: 1.35rem;
+    margin-bottom: $espacio-mediano;
+    text-align: center;
+  }
+
+  .admin-vista__acciones {
+    width: 100%;
+    max-width: 540px;
+    margin-inline: auto;
+    gap: $espacio-mediano;
+  }
+
+  .admin-vista__boton {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: .95rem;
+
+    v-icon { font-size: 1.25rem; }
+  }
+}
+
+/* Tablet un poco más compacto */
+@media (min-width: 600px) and (max-width: 960px) {
+  .admin-vista {
+    max-width: 720px;
+    margin: 0 auto;
+    padding-top: 92px;
+    padding-left: $espacio-mediano;
+    padding-right: $espacio-mediano;
+  }
+}
+
+
 </style>
