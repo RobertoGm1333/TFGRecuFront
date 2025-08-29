@@ -42,6 +42,26 @@ const historia = ref<Hito[]>([
   }
 ])
 
+// Permitir múltiples tarjetas abiertas hasta que se vuelvan a clicar
+const abiertos = ref<number[]>([])
+
+const isOpen = (id: number) => abiertos.value.includes(id)
+
+const toggle = (id: number) => {
+  if (isOpen(id)) {
+    abiertos.value = abiertos.value.filter(x => x !== id)
+  } else {
+    abiertos.value = [...abiertos.value, id]
+  }
+}
+
+const onKey = (e: KeyboardEvent, id: number) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault()
+    toggle(id)
+  }
+}
+
 const onImgError = (e: Event) => {
   (e.target as HTMLImageElement).src = '/placeholder-cover.png'
 }
@@ -68,15 +88,28 @@ const onImgError = (e: Event) => {
       <h3 class="section__title">Línea de tiempo</h3>
       <ol class="timeline__list">
         <li v-for="h in historia" :key="h.id" class="item">
-          <div class="item__card">
+          <div
+            class="item__card"
+            :class="{ 'is-open': isOpen(h.id) }"
+            role="button"
+            tabindex="0"
+            :aria-expanded="isOpen(h.id)"
+            @click="toggle(h.id)"
+            @keydown="onKey($event, h.id)"
+          >
             <div class="item__header">
               <span class="item__fecha">{{ h.fecha }}</span>
               <h4 class="item__titulo">{{ h.titulo }}</h4>
             </div>
-            <div class="item__media" v-if="h.imagen">
-              <img :src="h.imagen" :alt="h.titulo" @error="onImgError">
-            </div>
-            <p class="item__texto">{{ h.texto }}</p>
+
+            <transition name="collapse">
+              <div v-show="isOpen(h.id)" class="item__details">
+                <div class="item__media" v-if="h.imagen">
+                  <img :src="h.imagen" :alt="h.titulo" @error="onImgError">
+                </div>
+                <p class="item__texto">{{ h.texto }}</p>
+              </div>
+            </transition>
           </div>
         </li>
       </ol>
@@ -157,12 +190,17 @@ $radius: 16px;
   border-radius: $radius;
   padding: clamp(12px, 2vw, 18px);
   box-shadow: 0 6px 22px rgba(0,0,0,.25);
+  cursor: pointer;
+  outline: none;
+}
+.item__card:focus {
+  box-shadow: 0 0 0 2px rgba($accent,.55), 0 6px 22px rgba(0,0,0,.25);
 }
 .item__header {
   display: flex;
   gap: 10px;
   align-items: baseline;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
 }
 .item__fecha {
   color: #ffd7c5;
@@ -178,6 +216,11 @@ $radius: 16px;
   color: #fff;
   font-weight: 700;
   font-size: 1.05rem;
+}
+
+/* detalles colapsables */
+.item__details {
+  margin-top: 8px;
 }
 .item__media {
   margin: 8px 0 10px;
@@ -196,5 +239,20 @@ $radius: 16px;
   color: #eaeaea;
   line-height: 1.5;
   font-size: .98rem;
+}
+
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: max-height .25s ease, opacity .2s ease;
+}
+.collapse-enter-from,
+.collapse-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+.collapse-enter-to,
+.collapse-leave-from {
+  max-height: 600px;
+  opacity: 1;
 }
 </style>
