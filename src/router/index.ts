@@ -26,6 +26,7 @@ import DetalleEventoView from '@/views/DetallesEventoView.vue'
 import EquipoVoluntariosView from '@/views/EquipoVoluntariosView.vue'
 import HistoriaView from '@/views/HistoriaView.vue'
 import HazteVoluntarioView from '@/views/HazteVoluntarioView.vue'
+import DonacionesView from '@/views/DonacionesView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -80,6 +81,11 @@ const router = createRouter({
       path: '/hazte-voluntario',
       name: 'hazte-voluntario',
       component: HazteVoluntarioView,
+    },
+    {
+      path: '/donaciones',
+      name: 'donaciones',
+      component: DonacionesView,
     },
     {
       path: "/faq",

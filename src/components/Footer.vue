@@ -49,7 +49,7 @@ const { t } = useI18n();
         <h3 class="mega__title">Recursos</h3>
         <ul class="mega__links">
           <li><RouterLink to="/consejos-expertos" class="mega__link">Consejos de expertos</RouterLink></li>
-          <li><RouterLink to="/" class="mega__link">Paigna principal</RouterLink></li>
+          <li><RouterLink to="/" class="mega__link">Página principal</RouterLink></li>
         </ul>
       </section>
     </div>
@@ -103,14 +103,13 @@ const { t } = useI18n();
   /* Mega-footer */
   .footer__mega {
     width: 100%;
-    max-width: 860px; /* ↓ un poco más centrado al reducir el ancho total */
+    max-width: 860px;
     margin: 0 auto;
     padding: $espacio-mediano $espacio-pequeno;
     display: grid;
     gap: 18px;
-    grid-template-columns: 1fr 1fr; /* móvil */
-    text-align: left;
-    justify-content: center; /* centra el grid dentro del contenedor */
+    grid-template-columns: 1fr; /* móvil: 1 sola columna */
+    text-align: center; /* centrado en móvil */
   }
 
   .mega__title {
@@ -159,7 +158,7 @@ const { t } = useI18n();
       grid-template-columns: repeat(3, 1fr); /* en tablet y PC: 3 columnas */
       gap: 24px;
       padding-top: calc($espacio-mediano + 6px);
-      justify-content: center; /* mantiene el bloque centrado */
+      text-align: left; /* en desktop vuelve a izquierda */
     }
   }
 }
