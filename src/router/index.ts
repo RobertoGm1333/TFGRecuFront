@@ -24,7 +24,8 @@ import { useAutenticacion } from '@/stores/Autentificacion'
 import EventosView from '@/views/EventosView.vue'
 import DetalleEventoView from '@/views/DetallesEventoView.vue'
 import EquipoVoluntariosView from '@/views/EquipoVoluntariosView.vue'
-import HistoriaView from '@/views/HistoriaView.vue'   
+import HistoriaView from '@/views/HistoriaView.vue'
+import HazteVoluntarioView from '@/views/HazteVoluntarioView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -73,7 +74,12 @@ const router = createRouter({
     {
       path: '/historia',
       name: 'historia',
-      component: HistoriaView,  
+      component: HistoriaView,
+    },
+    {
+      path: '/hazte-voluntario',
+      name: 'hazte-voluntario',
+      component: HazteVoluntarioView,
     },
     {
       path: "/faq",
