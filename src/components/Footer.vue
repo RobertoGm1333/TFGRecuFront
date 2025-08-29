@@ -24,6 +24,36 @@ const { t } = useI18n();
       </div>
     </div>
 
+    <!-- 💡 Mega-footer simplificado -->
+    <div class="footer__mega">
+      <!-- Columna 1 -->
+      <section class="mega__col" aria-label="Conócenos">
+        <h3 class="mega__title">Conócenos</h3>
+        <ul class="mega__links">
+          <li><RouterLink to="/equipo" class="mega__link">Equipo y voluntarios</RouterLink></li>
+          <li><RouterLink to="/historia" class="mega__link">Historia del proyecto</RouterLink></li>
+        </ul>
+      </section>
+
+      <!-- Columna 2 -->
+      <section class="mega__col" aria-label="Colabora">
+        <h3 class="mega__title">Colabora</h3>
+        <ul class="mega__links">
+          <li><RouterLink to="/hazte-voluntario" class="mega__link">Hazte voluntario</RouterLink></li>
+          <li><RouterLink to="/donaciones" class="mega__link">Donaciones</RouterLink></li>
+        </ul>
+      </section>
+
+      <!-- Columna 3 -->
+      <section class="mega__col" aria-label="Recursos">
+        <h3 class="mega__title">Recursos</h3>
+        <ul class="mega__links">
+          <li><RouterLink to="/consejos-expertos" class="mega__link">Consejos de expertos</RouterLink></li>
+          <li><RouterLink to="/" class="mega__link">Paigna principal</RouterLink></li>
+        </ul>
+      </section>
+    </div>
+
     <div class="footer__credits">
       <p>{{ t('desarrollado_por') }} Roberto Gómez </p>
       <p>© {{ new Date().getFullYear() }} Adopciones Zaragoza - {{ t('derechos_reservados') }}</p>
@@ -34,7 +64,7 @@ const { t } = useI18n();
 <style scoped lang="scss">
 .footer {
   width: 100%;
-  padding: $espacio-mediano 0; /* Se reduce la altura */
+  padding: $espacio-mediano 0;
   text-align: center;
 
   .footer__container {
@@ -70,7 +100,47 @@ const { t } = useI18n();
     }
   }
 
-  /* Estilos para pantallas más grandes */
+  /* Mega-footer */
+  .footer__mega {
+    width: 100%;
+    max-width: 860px; /* ↓ un poco más centrado al reducir el ancho total */
+    margin: 0 auto;
+    padding: $espacio-mediano $espacio-pequeno;
+    display: grid;
+    gap: 18px;
+    grid-template-columns: 1fr 1fr; /* móvil */
+    text-align: left;
+    justify-content: center; /* centra el grid dentro del contenedor */
+  }
+
+  .mega__title {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    color: #ffffff;
+    font-weight: 800;
+  }
+
+  .mega__links {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .mega__link {
+    display: inline-block;
+    padding: 6px 0;
+    text-decoration: none;
+    color: #cfd8e3;
+    border-radius: 6px;
+    transition: color .15s ease;
+
+    &:hover {
+      color: #ffffff;
+      text-decoration: underline;
+    }
+  }
+
+  /* Responsive */
   @media (min-width: 768px) {
     .footer__container {
       flex-direction: row;
@@ -85,10 +155,12 @@ const { t } = useI18n();
       padding: 0 15px;
     }
 
-    .footer__credits {
-      text-align: center;
+    .footer__mega {
+      grid-template-columns: repeat(3, 1fr); /* en tablet y PC: 3 columnas */
+      gap: 24px;
+      padding-top: calc($espacio-mediano + 6px);
+      justify-content: center; /* mantiene el bloque centrado */
     }
   }
 }
-
 </style>

@@ -23,6 +23,7 @@ import GestionAdopcionesView from '@/views/GestionAdopcionesView.vue'
 import { useAutenticacion } from '@/stores/Autentificacion'
 import EventosView from '@/views/EventosView.vue'
 import DetalleEventoView from '@/views/DetallesEventoView.vue'
+import EquipoVoluntariosView from '@/views/EquipoVoluntariosView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -62,6 +63,11 @@ const router = createRouter({
       path: '/eventos/:id',
       name: 'detalle-evento',
       component: () => import('@/views/DetallesEventoView.vue')
+    },
+    {
+      path: '/equipo',
+      name: 'equipo',
+      component: EquipoVoluntariosView,
     },
     {
       path: "/faq",
