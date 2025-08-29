@@ -13,6 +13,10 @@ const mostrarConfirmacion = ref(false)
 const gatoAEliminar = ref<any>(null)
 const idProtectora = ref<number | null>(null)
 
+// ▼▼▼ NUEVO: selector de panel al estilo "home" (gatos | eventos | adopciones | solicitudes) ▼▼▼
+const panel = ref<'gatos' | 'eventos' | 'adopciones' | 'solicitudes'>('gatos')
+// ▲▲▲ FIN NUEVO ▲▲▲
+
 const solicitudes = ref<any[]>([])
 type PuntoGrafica = {
   mesYYYYMM: string
@@ -54,7 +58,7 @@ const formularioGato = ref<any>({
   visible: true
 })
 
-// ▼▼▼ NUEVO: lista fija de razas disponibles para el selector ▼▼▼
+
 const RAZAS = [
   'Pardo',
   'Gris', 
@@ -69,7 +73,7 @@ const RAZAS = [
   'Tricolor',
   'Siames'
 ]
-// ▲▲▲ FIN NUEVO ▲▲▲
+
 
 const headers = [
   { title: 'ID', key: 'id_Gato' },
@@ -708,130 +712,206 @@ async function guardarEvento() {
 
 <template>
   <v-container fluid class="protectora-admin pa-0">
-    <v-row justify="space-between" align="center" class="mb-4 mx-0">
-      <v-col cols="12" sm="auto" class="text-center text-sm-start px-4">
-        <h1 class="protectora-admin__titulo">Gestión de Gatos - Protectora</h1>
-      </v-col>
-      <v-col cols="12" sm="auto" class="text-center text-sm-start mt-4 mt-sm-0 px-4">
-        <v-btn color="primary" @click="abrirFormulario" class="protectora-admin__boton">Nuevo gato</v-btn>
-      </v-col>
-    </v-row>
 
-    <div class="protectora-admin__tabla-container px-4">
-      <v-data-table
-        :headers="headers"
-        :items="gatos"
-        class="elevation-1 protectora-admin__tabla"
-        density="comfortable"
-        item-value="id_Gato"
-        :items-per-page="10"
-      >
-        <template #item.esterilizado="{ item }">
-          <v-chip :color="item.esterilizado ? 'green' : 'red'" variant="flat" size="small">
-            {{ item.esterilizado ? 'Sí' : 'No' }}
-          </v-chip>
-        </template>
+    <!-- ▼▼▼ NUEVO: Menú de botones estilo "Panel general" (responsive) ▼▼▼ -->
+    <div class="panel-selector py-8 px-4">
+      <h2 class="panel-selector__title text-center mb-2">Panel de Administración</h2>
+      <p class="panel-selector__subtitle text-center mb-6">Elige qué quieres gestionar</p>
 
-        <template #item.visible="{ item }">
-          <v-chip :color="item.visible ? 'blue' : 'grey'" variant="flat" size="small">
-            {{ item.visible ? 'Sí' : 'No' }}
-          </v-chip>
-        </template>
+      <v-row class="panel-selector__grid" justify="center" align="stretch" dense>
+        <v-col cols="12" sm="6" md="3" class="mb-3">
+          <v-btn
+            block
+            size="large"
+            class="menu-btn"
+            :class="panel==='gatos' ? 'menu-btn--active' : ''"
+            prepend-icon="mdi-cat"
+            @click="panel='gatos'"
+          >Gestión de Gatos</v-btn>
+        </v-col>
 
-        <template #item.acciones="{ item }">
-          <v-btn icon="mdi-pencil" size="small" class="mr-2" @click="editarGato(item)"></v-btn>
-          <v-btn icon="mdi-delete" size="small" color="error" @click="confirmarEliminar(item)"></v-btn>
-        </template>
+        <v-col cols="12" sm="6" md="3" class="mb-3">
+          <v-btn
+            block
+            size="large"
+            class="menu-btn"
+            :class="panel==='eventos' ? 'menu-btn--active' : ''"
+            prepend-icon="mdi-calendar-star"
+            @click="panel='eventos'"
+          >Gestión de Eventos</v-btn>
+        </v-col>
 
-        <template #no-data>
-          <div class="text-center pa-6">No hay gatos registrados para esta protectora.</div>
-        </template>
-      </v-data-table>
+        <v-col cols="12" sm="6" md="3" class="mb-3">
+          <v-btn
+            block
+            size="large"
+            class="menu-btn"
+            :class="panel==='adopciones' ? 'menu-btn--active' : ''"
+            prepend-icon="mdi-heart"
+            @click="panel='adopciones'"
+          >Gestión de Adopciones</v-btn>
+        </v-col>
+
+        <v-col cols="12" sm="6" md="3" class="mb-3">
+          <v-btn
+            block
+            size="large"
+            class="menu-btn"
+            :class="panel==='solicitudes' ? 'menu-btn--active' : ''"
+            prepend-icon="mdi-account-multiple"
+            @click="panel='solicitudes'"
+          >Solicitudes</v-btn>
+        </v-col>
+      </v-row>
     </div>
+    <!-- ▲▲▲ FIN NUEVO ▲▲▲ -->
+
+    <!-- ======= GATOS ======= -->
+    <div v-if="panel==='gatos'">
+      <v-row justify="space-between" align="center" class="mb-4 mx-0">
+        <v-col cols="12" sm="auto" class="text-center text-sm-start px-4">
+          <h1 class="protectora-admin__titulo">Gestión de Gatos - Protectora</h1>
+        </v-col>
+        <v-col cols="12" sm="auto" class="text-center text-sm-start mt-4 mt-sm-0 px-4">
+          <v-btn color="primary" @click="abrirFormulario" class="protectora-admin__boton">Nuevo gato</v-btn>
+        </v-col>
+      </v-row>
+
+      <div class="protectora-admin__tabla-container px-4">
+        <!-- ▼▼▼ WRAP para scroll horizontal en móvil ▼▼▼ -->
+        <div class="table-wrap">
+          <v-data-table
+            :headers="headers"
+            :items="gatos"
+            class="elevation-1 protectora-admin__tabla"
+            density="compact"
+            mobile-breakpoint="sm"
+            item-value="id_Gato"
+            :items-per-page="10"
+          >
+            <template #item.esterilizado="{ item }">
+              <v-chip :color="item.esterilizado ? 'green' : 'red'" variant="flat" size="small">
+                {{ item.esterilizado ? 'Sí' : 'No' }}
+              </v-chip>
+            </template>
+
+            <template #item.visible="{ item }">
+              <v-chip :color="item.visible ? 'blue' : 'grey'" variant="flat" size="small">
+                {{ item.visible ? 'Sí' : 'No' }}
+              </v-chip>
+            </template>
+
+            <template #item.acciones="{ item }">
+              <v-btn icon="mdi-pencil" size="small" class="mr-2" @click="editarGato(item)"></v-btn>
+              <v-btn icon="mdi-delete" size="small" color="error" @click="confirmarEliminar(item)"></v-btn>
+            </template>
+
+            <template #no-data>
+              <div class="text-center pa-6">No hay gatos registrados para esta protectora.</div>
+            </template>
+          </v-data-table>
+        </div>
+        <!-- ▲▲▲ WRAP ▲▲▲ -->
+      </div>
+    </div>
+    <!-- ======= /GATOS ======= -->
 
     <!-- === EVENTOS: Listado y botón crear === -->
-    <v-container fluid class="protectora-admin__solicitudes px-4 mt-8">
+    <v-container v-if="panel==='eventos'" fluid class="protectora-admin__solicitudes px-4 mt-8">
       <div class="d-flex align-center justify-space-between">
         <h2 class="protectora-admin__subtitulo">Eventos de protectora</h2>
         <v-btn color="primary" variant="tonal" prepend-icon="mdi-plus" @click="abrirFormularioEvento">Nuevo evento</v-btn>
       </div>
 
-      <v-data-table
-        :headers="headersEventos"
-        :items="eventos"
-        class="elevation-1 protectora-admin__tabla mt-3"
-        density="comfortable"
-        item-value="Id_Evento"
-        :items-per-page="10"
-      >
-        <!-- ✅ usar item directo -->
-        <template #item.Fecha_Evento="{ item }">
-          {{ item?.Fecha_Evento ? new Date(item.Fecha_Evento).toLocaleDateString() : '—' }}
-        </template>
+      <!-- ▼▼▼ WRAP para scroll horizontal en móvil ▼▼▼ -->
+      <div class="table-wrap">
+        <v-data-table
+          :headers="headersEventos"
+          :items="eventos"
+          class="elevation-1 protectora-admin__tabla mt-3"
+          density="compact"
+          mobile-breakpoint="sm"
+          item-value="Id_Evento"
+          :items-per-page="10"
+        >
+          <!-- ✅ usar item directo -->
+          <template #item.Fecha_Evento="{ item }">
+            {{ item?.Fecha_Evento ? new Date(item.Fecha_Evento).toLocaleDateString() : '—' }}
+          </template>
 
-        <template #item.Foto_Evento="{ item }">
-          <v-avatar size="44" v-if="item?.Foto_Evento">
-            <v-img :src="`http://localhost:5167/${String(item.Foto_Evento).replace(/^\/+/, '')}`" alt="foto evento" />
-          </v-avatar>
-          <span v-else class="text-disabled">—</span>
-        </template>
+          <template #item.Foto_Evento="{ item }">
+            <v-avatar size="44" v-if="item?.Foto_Evento">
+              <v-img :src="`http://localhost:5167/${String(item.Foto_Evento).replace(/^\/+/, '')}`" alt="foto evento" />
+            </v-avatar>
+            <span v-else class="text-disabled">—</span>
+          </template>
 
-        <template #item.acciones="{ item }">
-          <v-btn icon="mdi-pencil" size="small" class="mr-2" @click="editarEvento(item)"></v-btn>
-          <v-btn icon="mdi-delete" size="small" color="error" @click="confirmarEliminarEvento(item)"></v-btn>
-        </template>
+          <template #item.acciones="{ item }">
+            <v-btn icon="mdi-pencil" size="small" class="mr-2" @click="editarEvento(item)"></v-btn>
+            <v-btn icon="mdi-delete" size="small" color="error" @click="confirmarEliminarEvento(item)"></v-btn>
+          </template>
 
-        <template #no-data>
-          <div class="text-center pa-6">No hay eventos registrados.</div>
-        </template>
-      </v-data-table>
+          <template #no-data>
+            <div class="text-center pa-6">No hay eventos registrados.</div>
+          </template>
+        </v-data-table>
+      </div>
+      <!-- ▲▲▲ WRAP ▲▲▲ -->
     </v-container>
     <!-- === /EVENTOS === -->
 
-    <v-container fluid class="protectora-admin__solicitudes px-4">
+    <!-- ======= SOLICITUDES ======= -->
+    <v-container v-if="panel==='solicitudes'" fluid class="protectora-admin__solicitudes px-4">
       <h2 class="protectora-admin__subtitulo">Solicitudes de adopción</h2>
-      <v-data-table
-        :headers="headersSolicitudes"
-        :items="solicitudes"
-        class="elevation-1 protectora-admin__tabla"
-        density="comfortable"
-        item-value="id_Solicitud"
-        :items-per-page="10"
-      >
-        <template #item.fecha_Solicitud="{ item }">
-          {{ new Date(item.fecha_Solicitud).toLocaleDateString() }}
-        </template>
+      <!-- ▼▼▼ WRAP para scroll horizontal en móvil ▼▼▼ -->
+      <div class="table-wrap">
+        <v-data-table
+          :headers="headersSolicitudes"
+          :items="solicitudes"
+          class="elevation-1 protectora-admin__tabla"
+          density="compact"
+          mobile-breakpoint="sm"
+          item-value="id_Solicitud"
+          :items-per-page="10"
+        >
+          <template #item.fecha_Solicitud="{ item }">
+            {{ new Date(item.fecha_Solicitud).toLocaleDateString() }}
+          </template>
 
-        <template #item.estado="{ item }">
-          <v-chip :color="claseEstado(item.estado)" variant="flat" size="small">
-            {{ item.estado }}
-          </v-chip>
-        </template>
+          <template #item.estado="{ item }">
+            <v-chip :color="claseEstado(item.estado)" variant="flat" size="small">
+              {{ item.estado }}
+            </v-chip>
+          </template>
 
-        <template #item.acciones="{ item }">
-          <v-menu>
-            <template #activator="{ props }">
-              <v-btn v-bind="props" icon="mdi-dots-vertical" size="small"></v-btn>
-            </template>
-            <v-list>
-              <v-list-item @click="solicitudesStore.verSolicitud(item)">
-                <v-list-item-title>Ver</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="solicitudesStore.abrirActualizar(item)">
-                <v-list-item-title>Actualizar estado</v-list-item-title>
-              </v-list-item>
-            </v-list>
-          </v-menu>
-        </template>
+          <template #item.acciones="{ item }">
+            <v-menu>
+              <template #activator="{ props }">
+                <v-btn v-bind="props" icon="mdi-dots-vertical" size="small"></v-btn>
+              </template>
+              <v-list>
+                <v-list-item @click="solicitudesStore.verSolicitud(item)">
+                  <v-list-item-title>Ver</v-list-item-title>
+                </v-list-item>
+                <v-list-item @click="solicitudesStore.abrirActualizar(item)">
+                  <v-list-item-title>Actualizar estado</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+          </template>
 
-        <template #no-data>
-          <div class="text-center pa-6">No hay solicitudes registradas para esta protectora.</div>
-        </template>
-      </v-data-table>
+          <template #no-data>
+            <div class="text-center pa-6">No hay solicitudes registradas para esta protectora.</div>
+          </template>
+        </v-data-table>
+      </div>
+      <!-- ▲▲▲ WRAP ▲▲▲ -->
     </v-container>
+    <!-- ======= /SOLICITUDES ======= -->
 
-    <v-card class="mx-4 mb-6" elevation="2">
-      <v-card-title class="d-flex align-center justify-space-between">
+    <!-- ======= ADOPCIONES COMPLETADAS ======= -->
+    <v-card v-if="panel==='adopciones'" class="adopciones-card mx-2 mx-sm-4 mb-6" elevation="2">
+      <v-card-title class="d-flex align-center justify-space-between flex-column flex-sm-row ga-2">
         <div>Adopciones completadas</div>
         <div>
           <v-btn color="primary" variant="tonal" prepend-icon="mdi-plus" @click="abrirNuevaAdopcion()">Nueva adopción</v-btn>
@@ -840,7 +920,7 @@ async function guardarEvento() {
 
       <v-card-subtitle class="px-4 pt-0">Gestiona las adopciones completadas y visualiza su evolución.</v-card-subtitle>
 
-      <v-tabs v-model="tabAdopciones" class="px-4">
+      <v-tabs v-model="tabAdopciones" class="px-4 adopciones-tabs">
         <v-tab value="listado">LISTADO</v-tab>
         <v-tab value="grafica">GRÁFICA</v-tab>
       </v-tabs>
@@ -850,34 +930,38 @@ async function guardarEvento() {
           <v-card-text>
             <div v-if="cargandoAdopciones">Cargando…</div>
             <div v-else-if="errorAdopciones">{{ errorAdopciones }}</div>
-            <v-data-table
-              v-else
-              :headers="headersAdopciones"
-              :items="adopciones.map(a => ({ ...a, nombre_Gato: gatoPorId.get(a.id_Gato) || ('#' + a.id_Gato) }))"
-              class="elevation-1"
-              density="comfortable"
-              item-value="id_Adopcion"
-              :items-per-page="10"
-            >
-              <template #item.fecha_Adopcion="{ item }">
-                {{ new Date(item.fecha_Adopcion).toLocaleDateString() }}
-              </template>
+            <!-- ▼▼▼ WRAP para scroll horizontal en móvil ▼▼▼ -->
+            <div class="table-wrap" v-else>
+              <v-data-table
+                :headers="headersAdopciones"
+                :items="adopciones.map(a => ({ ...a, nombre_Gato: gatoPorId.get(a.id_Gato) || ('#' + a.id_Gato) }))"
+                class="elevation-1 adopciones-table"
+                density="compact"
+                mobile-breakpoint="sm"
+                item-value="id_Adopcion"
+                :items-per-page="10"
+              >
+                <template #item.fecha_Adopcion="{ item }">
+                  {{ new Date(item.fecha_Adopcion).toLocaleDateString() }}
+                </template>
 
-              <template #item.origenWeb="{ item }">
-                <v-chip :color="item.origenWeb ? 'blue' : 'grey'" size="small" variant="flat">
-                  {{ item.origenWeb ? 'Web' : 'Manual' }}
-                </v-chip>
-              </template>
+                <template #item.origenWeb="{ item }">
+                  <v-chip :color="item.origenWeb ? 'blue' : 'grey'" size="small" variant="flat">
+                    {{ item.origenWeb ? 'Web' : 'Manual' }}
+                  </v-chip>
+                </template>
 
-              <template #item.acciones="{ item }">
-                <v-btn icon="mdi-pencil" size="small" class="mr-2" @click="abrirEditarAdopcion(item)"></v-btn>
-                <v-btn icon="mdi-delete" size="small" color="error" @click="borrarAdopcion(item)"></v-btn>
-              </template>
+                <template #item.acciones="{ item }">
+                  <v-btn icon="mdi-pencil" size="small" class="mr-2" @click="abrirEditarAdopcion(item)"></v-btn>
+                  <v-btn icon="mdi-delete" size="small" color="error" @click="borrarAdopcion(item)"></v-btn>
+                </template>
 
-              <template #no-data>
-                <div class="text-center pa-6">No hay adopciones registradas.</div>
-              </template>
-            </v-data-table>
+                <template #no-data>
+                  <div class="text-center pa-6">No hay adopciones registradas.</div>
+                </template>
+              </v-data-table>
+            </div>
+            <!-- ▲▲▲ WRAP ▲▲▲ -->
           </v-card-text>
         </v-window-item>
 
@@ -890,6 +974,7 @@ async function guardarEvento() {
         </v-window-item>
       </v-window>
     </v-card>
+    <!-- ======= /ADOPCIONES COMPLETADAS ======= -->
 
     <v-dialog v-model="mostrarDialogo" max-width="700">
       <v-card class="protectora-admin__dialogo">
@@ -1426,6 +1511,107 @@ $color-blanco: #ffffff;
     :deep(.v-textarea) {
       color: $color-blanco;
     }
+  }
+}
+
+/* ▼▼▼ NUEVO: estilos del menú de botones (responsive) ▼▼▼ */
+.panel-selector__title {
+  font-weight: 700;
+  font-size: 1.6rem;
+}
+.panel-selector__subtitle {
+  color: $color-muted;
+}
+.menu-btn {
+  background: rgba(255, 85, 0, .12);
+  border: 1px solid rgba(255, 85, 0, .35);
+  font-weight: 600;
+  border-radius: 12px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.menu-btn--active {
+  background: linear-gradient(90deg, $color-primario, $color-rojo);
+  color: $color-blanco;
+  border-color: transparent;
+}
+/* ▲▲▲ FIN NUEVO ▲▲▲ */
+
+/* ======= SOLO CAMBIOS RESPONSIVE MÓVIL ======= */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-wrap::-webkit-scrollbar {
+  height: 8px;
+}
+.table-wrap::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 8px;
+}
+
+/* ▼▼▼ Ajustes específicos móvil para ADOPCIONES ▼▼▼ */
+.adopciones-card {
+  max-width: 760px;
+  margin-inline: auto;
+}
+.adopciones-tabs {
+  :deep(.v-tab) { font-weight: 600; }
+}
+
+/* Ocultar columnas poco críticas en móvil (ID, Origen, Observaciones) */
+@media (max-width: 600px) {
+  .panel-selector { padding: 4px 8px !important; }
+  .panel-selector__title { font-size: 1.1rem; }
+  .panel-selector__subtitle { font-size: .85rem; margin-bottom: .5rem; }
+
+  .menu-btn {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    border-radius: 12px;
+    font-size: .95rem;
+  }
+
+  .protectora-admin__titulo { font-size: 1rem; }
+
+  .protectora-admin__tabla-container,
+  .protectora-admin__solicitudes {
+    margin: 8px auto 12px !important; max-width: 360px; padding: 6px 0 0 0;
+  }
+
+  :deep(.v-data-table) { font-size: .8rem; }
+  :deep(.v-data-table .v-btn--icon) { width: 24px; height: 24px; }
+  :deep(.v-chip) { font-size: .7rem; height: 20px; }
+
+  /* Evita que las cards queden estrechas */
+  .mx-4 { margin-inline: auto !important; max-width: 360px; }
+
+  /* Panel de adopciones más estrecho y centrado */
+  .adopciones-card { max-width: 360px; }
+
+  /* Título en dos líneas si hace falta */
+  .adopciones-card :deep(.v-card-title) {
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+
+  /* Tabla de adopciones: oculta columnas 1,4,6 en móvil */
+  .adopciones-table :deep(table thead th:nth-child(1)),
+  .adopciones-table :deep(table thead th:nth-child(4)),
+  .adopciones-table :deep(table thead th:nth-child(6)),
+  .adopciones-table :deep(table tbody td:nth-child(1)),
+  .adopciones-table :deep(table tbody td:nth-child(4)),
+  .adopciones-table :deep(table tbody td:nth-child(6)) {
+    display: none;
+  }
+}
+
+/* Ajustes tablet */
+@media (min-width: 600px) and (max-width: 960px) {
+  .menu-btn { padding-top: 14px; padding-bottom: 14px; }
+  .protectora-admin__tabla-container,
+  .protectora-admin__solicitudes {
+    margin: 16px 12px 22px !important;
   }
 }
 </style>

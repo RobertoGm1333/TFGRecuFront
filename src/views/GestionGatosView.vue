@@ -57,7 +57,6 @@ const headers = [
   { title: 'Acciones', key: 'acciones', sortable: false, align: 'end' }
 ];
 
-// ▼▼▼ NUEVO: soporte de subida de imagen como en Admin Protectora ▼▼▼
 const archivoImagen = ref<File|null>(null)
 const fotoPreview = ref<string|null>(null)
 
@@ -73,9 +72,8 @@ function cambioImagen(e: Event) {
   }
   reader.readAsDataURL(file)
 }
-// ▲▲▲ FIN NUEVO ▲▲▲
 
-// ▼▼▼ NUEVO: listado de Protectoras para el select ▼▼▼
+
 const protectoras = ref<any[]>([])
 const itemsProtectoras = computed(() =>
   (protectoras.value || []).map((p: any) => ({
@@ -83,11 +81,10 @@ const itemsProtectoras = computed(() =>
     value: p.id_Protectora
   }))
 )
-// ▲▲▲ FIN NUEVO ▲▲▲
+
 
 onMounted(async () => {
   await cargarGatos();
-  // NUEVO: cargar nombres de Protectoras
   await cargarProtectoras();
 });
 
@@ -153,7 +150,7 @@ async function guardarGato() {
     const { valid } = await formularioGato.value?.validate();
     if (!valid) return;
 
-    // ▼▼▼ NUEVO: si hay archivo seleccionado, subimos con FormData al backend ▼▼▼
+
     if (archivoImagen.value) {
       const creando = gato.value.id_Gato === 0
       const url = creando
@@ -178,7 +175,7 @@ async function guardarGato() {
 
       mensajeTexto.value = creando ? 'Gato agregado exitosamente' : 'Gato actualizado exitosamente'
     } else {
-      // ▲▲▲ Si no hay archivo, mantenemos el flujo anterior con la URL ▲▲▲
+
       if (gato.value.id_Gato === 0) {
         await gatosStore.createGato(gato.value);
         mensajeTexto.value = 'Gato agregado exitosamente';
@@ -187,7 +184,7 @@ async function guardarGato() {
         mensajeTexto.value = 'Gato actualizado exitosamente';
       }
     }
-    // ▲▲▲ FIN NUEVO ▲▲▲
+
     
     mensajeTipo.value = 'success';
     mostrarMensaje.value = true;
@@ -391,7 +388,7 @@ const gatosFiltrados = computed(() => {
               variant="outlined"
               class="mb-4"
             />
-            <!-- ▼▼▼ NUEVO: botón de subida de imagen + preview (reemplaza URL) ▼▼▼ -->
+
             <v-row>
               <v-col cols="12" sm="6">
                 <v-file-input
@@ -410,7 +407,6 @@ const gatosFiltrados = computed(() => {
                 <div v-else class="text-caption">Sin imagen</div>
               </v-col>
             </v-row>
-            <!-- ▲▲▲ FIN NUEVO ▲▲▲ -->
             <v-checkbox v-model="gato.visible" label="Visible públicamente" />
           </v-form>
         </v-card-text>
