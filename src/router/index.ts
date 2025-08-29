@@ -24,6 +24,7 @@ import { useAutenticacion } from '@/stores/Autentificacion'
 import EventosView from '@/views/EventosView.vue'
 import DetalleEventoView from '@/views/DetallesEventoView.vue'
 import EquipoVoluntariosView from '@/views/EquipoVoluntariosView.vue'
+import HistoriaView from '@/views/HistoriaView.vue'   
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -68,6 +69,11 @@ const router = createRouter({
       path: '/equipo',
       name: 'equipo',
       component: EquipoVoluntariosView,
+    },
+    {
+      path: '/historia',
+      name: 'historia',
+      component: HistoriaView,  
     },
     {
       path: "/faq",
@@ -179,12 +185,10 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const autenticacionStore = useAutenticacion()
 
-  // Redirección si necesita login
   if (to.meta.requiresAuth && !autenticacionStore.esAutenticado) {
     return next('/iniciar-sesion')
   }
 
-  // Redirección si requiere rol admin y no lo es
   if (to.meta.requiereAdmin && (!autenticacionStore.usuario || autenticacionStore.usuario.rol !== 'admin')) {
     return next('/')
   }
