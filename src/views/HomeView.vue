@@ -9,7 +9,14 @@ const { t } = useI18n()
   <div class="titulo">
     <h1 class="logo-container">
       AdoptArag
-      <svg class="logo-svg" width="40" height="40" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <svg
+        class="logo-svg"
+        width="40"
+        height="40"
+        viewBox="0 0 160 160"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+      >
         <circle cx="100" cy="120" r="40" fill="#FF5500" stroke="#3B2F2F" stroke-width="5"/>
         <circle cx="60" cy="70" r="20" fill="#FF5500" stroke="#3B2F2F" stroke-width="4"/>
         <circle cx="100" cy="60" r="22" fill="#FF5500" stroke="#3B2F2F" stroke-width="4"/>
@@ -36,6 +43,39 @@ const { t } = useI18n()
         <RouterLink to="/gato">
           <button class="cta-button">{{ t('ver_gatos') }}</button>
         </RouterLink>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección de testimonios -->
+  <div class="testimonios">
+    <div class="testimonio">
+      <img class="testimonio__foto" src="../../Images/gatos/Carter.png" alt="gato testimonio 1" />
+      <div class="testimonio__contenido">
+        <h3 class="testimonio__usuario">Marta</h3>
+        <p class="testimonio__texto">
+          "Desde que adoptamos a Carter, la casa se siente mucho más alegre. Nos ha cambiado la vida para bien y ahora queremos darle una vida digna como se merece."
+        </p>
+      </div>
+    </div>
+
+    <div class="testimonio">
+      <img class="testimonio__foto" src="../../Images/gatos/Onice.png" alt="gato testimonio 2" />
+      <div class="testimonio__contenido">
+        <h3 class="testimonio__usuario">Toñi </h3>
+        <p class="testimonio__texto">
+          "En cuanto vimos a este pequeño en adopción supimos que era el indicado. A pesar de ser muy pequeño y gracias a la ayuda de la protectora hemos conseguido educarlo muy bien."
+        </p>
+      </div>
+    </div>
+
+    <div class="testimonio">
+      <img class="testimonio__foto" src="../../Images/gatos/Dorado.png" alt="gato testimonio 3" />
+      <div class="testimonio__contenido">
+        <h3 class="testimonio__usuario">Mariano</h3>
+        <p class="testimonio__texto">
+          "Al adoptar a Dorado no imaginábamos lo rápido que se integraría en nuestra familia. Adoptar ha sido una de las mejores decisiones que hemos tomado, y ahora nuestro objetivo es darle una vida mucho mejor de la que tenía."
+        </p>
       </div>
     </div>
   </div>
@@ -121,6 +161,48 @@ const { t } = useI18n()
   }
 }
 
+/* Sección testimonios */
+.testimonios {
+  max-width: 1200px;
+  margin: 0 auto $espacio-extra-grande;
+  padding: 0 $espacio-grande;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $espacio-mediano;
+}
+
+.testimonio {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  align-items: center;
+  gap: 40px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: $espacio-mediano;
+  padding: $espacio-mediano;
+}
+
+.testimonio__foto {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: $espacio-mediano;
+}
+
+.testimonio__contenido {
+  display: grid;
+  gap: 6px;
+}
+
+.testimonio__usuario {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.testimonio__texto {
+  line-height: 1.55;
+  opacity: .95;
+}
+
 @media (prefers-color-scheme: dark) {
   .quienes-somos {
     background: rgba(255, 85, 0, 0.1);
@@ -135,7 +217,7 @@ const { t } = useI18n()
 
   .logo-container {
     font-size: 2.8rem;
-    margin-top: 92px;
+    margin-top: 42px;
   }
 
   .quienes-somos {
@@ -146,6 +228,7 @@ const { t } = useI18n()
     font-size: 1.1rem;
     padding: $espacio-mediano $espacio-grande;
   }
+
 }
 
 @media (max-width: 480px) {
@@ -166,7 +249,7 @@ const { t } = useI18n()
     font-size: 0.95rem;
     line-height: 1.5;
   }
-
+ 
   .cta-button {
     font-size: 1rem;
     padding: $espacio-mediano 16px;

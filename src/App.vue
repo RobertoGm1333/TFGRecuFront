@@ -17,8 +17,13 @@ onMounted(() => {
   if (!mainContent) return;
 
   const pawContainer = document.createElement('div');
+<<<<<<< HEAD
   pawContainer.id = 'paw-prints-container'; 
   
+=======
+  pawContainer.id = 'paw-prints-container';
+   
+>>>>>>> master
   // Crear las huellas en sets de 2 en 2, en diagonal
   const pawPositions = [
     { left: '18%', top: '-12%', rotate: '-45deg' },
@@ -44,10 +49,89 @@ onMounted(() => {
     pawElement.style.transform = `rotate(${position.rotate})`;
     pawContainer.appendChild(pawElement);
   });
-  
-  // Añadir al área de contenido principal
+
   mainContent.appendChild(pawContainer);
 });
+import { ref, nextTick } from 'vue'
+
+type ChatMsg = { role: 'user' | 'assistant', text: string }
+
+const chatOpen = ref(false)
+const chatInput = ref('')
+const chatSending = ref(false)
+const chatMessages = ref<ChatMsg[]>([])
+const chatBox = ref<HTMLElement | null>(null)
+const chatInputEl = ref<HTMLInputElement | null>(null)
+
+const chatLoad = () => {
+  try { localStorage.removeItem('chatbox_state') } catch {}
+  chatOpen.value = false
+  chatMessages.value = []
+}
+
+const chatSave = () => {
+  localStorage.setItem('chatbox_state', JSON.stringify({ open: chatOpen.value, messages: chatMessages.value }))
+}
+
+const chatScrollBottom = async () => {
+  await nextTick()
+  if (chatBox.value) chatBox.value.scrollTop = chatBox.value.scrollHeight
+}
+
+const chatOpenPanel = async () => {
+  chatOpen.value = true
+  // Mensaje de bienvenida si es la primera vez que se abre
+  if (chatMessages.value.length === 0) {
+    chatMessages.value.push({
+      role: 'assistant',
+      text: '¡Hola! Soy Catherine 🐾 Tu asistente para adopciones. ¿Buscas algún tipo de gato o información de alguna protectora?'
+    })
+    chatSave()
+  }
+  await chatScrollBottom()
+  await nextTick()
+  chatInputEl.value?.focus()
+}
+
+const chatClosePanel = () => {
+  chatOpen.value = false
+  chatSave()
+}
+
+const chatSend = async () => {
+  const text = chatInput.value.trim()
+  if (!text || chatSending.value) return
+  chatMessages.value.push({ role: 'user', text })
+  chatInput.value = ''
+  chatSending.value = true
+  chatSave()
+  await chatScrollBottom()
+  await nextTick()
+  chatInputEl.value?.focus()
+  try {
+    const res = await fetch('http://localhost:5167/api/Catherine/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mensaje: text })
+    })
+    if (!res.ok) throw new Error('Network')
+    const data = await res.json()
+    const reply = typeof data?.respuesta === 'string' ? data.respuesta : JSON.stringify(data)
+    chatMessages.value.push({ role: 'assistant', text: reply })
+  } catch {
+    chatMessages.value.push({ role: 'assistant', text: 'No se ha podido obtener respuesta en este momento.' })
+  } finally {
+    chatSending.value = false
+    chatSave()
+    chatScrollBottom()
+    await nextTick()
+    chatInputEl.value?.focus()
+  }
+}
+
+onMounted(() => {
+  chatLoad()
+})
 </script>
 
 <template>
@@ -57,6 +141,32 @@ onMounted(() => {
       <RouterView />
     </div>
     <Footer />
+  
+    <div class="chatbox">
+      <button class="chatbox__fab" @click="chatOpenPanel" v-if="!chatOpen" aria-label="Abrir chat IA">
+        <span>IA</span>
+      </button>
+      <div v-if="chatOpen" class="chatbox__panel">
+        <div class="chatbox__header" @click="chatClosePanel">
+          <span>Catherine</span>
+        </div>
+        <div class="chatbox__messages" ref="chatBox" role="log" aria-live="polite">
+          <div v-for="(m,i) in chatMessages" :key="i" class="chatbox__msg" :data-role="m.role">
+            <div class="chatbox__bubble">{{ m.text }}</div>
+          </div>
+          <div v-if="chatSending" class="chatbox__typing">
+            <span class="chatbox__dot"></span>
+            <span class="chatbox__dot"></span>
+            <span class="chatbox__dot"></span>
+          </div>
+        </div>
+        <form class="chatbox__input" @submit.prevent="chatSend">
+          <input ref="chatInputEl" v-model="chatInput" placeholder="Escribe tu mensaje" @keydown.enter.prevent="!chatSending && chatSend()" />
+          <button type="submit" :disabled="chatSending">Enviar</button>
+        </form>
+      </div>
+    </div>
+  
   </div>
 </template>
 
@@ -78,16 +188,12 @@ onMounted(() => {
   pointer-events: none;
   overflow: hidden;
 }
-
+ 
 .paw-print {
   position: absolute;
   width: 150px;
   height: 150px;
   background-image: url('/Images/logos/Huella.svg');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  opacity: 0.1;
 }
 </style>
 
@@ -104,4 +210,209 @@ onMounted(() => {
   position: relative;
 }
 
-</style> 
+.chatbox {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom)); /* FAB respetando safe-area */
+  z-index: 9999;
+}
+
+.chatbox__fab {
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 9999px;
+  background: #FF5500;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.chatbox__panel {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: min(92vw, 380px);
+  height: 520px;
+  background: var(--chat-bg, #ffffff);
+  color: var(--chat-fg, #111111);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.24);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 10000;
+}
+
+@media (max-width: 480px) {
+  .chatbox__panel {
+    width: calc(100vw - 24px);
+    height: 70vh;
+    left: 12px;
+    right: 12px;
+  }
+}
+
+/* ======== Responsive móvil como bottom-sheet con dvh y safe-area ======== */
+@media (max-width: 640px) {
+  .chatbox__panel {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .chatbox__messages {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  .chatbox__input {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .chatbox__input input {
+    font-size: 16px; /* evita zoom en iOS */
+    min-height: 48px;
+  }
+
+  .chatbox__input button {
+    min-height: 48px;
+  }
+}
+
+.chatbox__header {
+  padding: 12px 16px;
+  font-weight: 700;
+  background: #FB7C3C;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer; /* Ahora toda la barra es clickable */
+  user-select: none;
+}
+
+.chatbox__close {
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.chatbox__messages {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--chat-body, #f6f6f6);
+}
+
+.chatbox__msg {
+  display: flex;
+}
+
+.chatbox__msg[data-role="user"] {
+  justify-content: flex-end;
+}
+
+.chatbox__msg[data-role="assistant"] {
+  justify-content: flex-start;
+}
+
+.chatbox__bubble {
+  max-width: 80%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  line-height: 1.3;
+  font-size: 14px;
+}
+
+.chatbox__msg[data-role="user"] .chatbox__bubble {
+  background: #FF5500;
+  color: #ffffff;
+  border-top-right-radius: 4px;
+}
+
+.chatbox__msg[data-role="assistant"] .chatbox__bubble {
+  background: #ffffff;
+  color: #111111;
+  border-top-left-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.chatbox__input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 12px;
+  background: #ffffff;
+  border-top: 1px solid rgba(0,0,0,0.06);
+}
+
+.chatbox__input input {
+  padding: 10px 12px;
+  border: 1px solid rgba(0,0,0,0.18);
+  border-radius: 10px;
+  outline: none;
+  font-size: 14px;
+}
+
+.chatbox__input button {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  background: #FF5500;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chatbox__typing {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 8px;
+}
+
+.chatbox__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgba(0,0,0,0.35);
+  display: inline-block;
+  animation: dotPulse 1s infinite ease-in-out;
+}
+
+.chatbox__dot:nth-child(2) { animation-delay: .15s; }
+.chatbox__dot:nth-child(3) { animation-delay: .3s; }
+
+@keyframes dotPulse {
+  0%, 80%, 100% { transform: scale(0.8); opacity: .6; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+:root {
+  --chat-bg: #ffffff;
+  --chat-fg: #111111;
+  --chat-body: #f6f6f6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --chat-bg: #1f1f1f;
+    --chat-fg: #f1f1f1;
+    --chat-body: #141414;
+  }
+}
+</style>

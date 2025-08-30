@@ -191,7 +191,7 @@ function resetPaw(ctx: CanvasRenderingContext2D) {
         <nav class="desktop-nav">
           <RouterLink to="/gato">{{ t('gatos') }}</RouterLink>
           <RouterLink to="/protectoras">{{ t('protectoras') }}</RouterLink>
-          <RouterLink to="/consejos-expertos">{{ t('consejos_expertos') }}</RouterLink>
+          <RouterLink to="/eventos">{{ t('Eventos') }}</RouterLink>
         </nav>
         
         <!-- Botón hamburguesa para móvil -->
@@ -214,7 +214,7 @@ function resetPaw(ctx: CanvasRenderingContext2D) {
         >
           <RouterLink to="/gato" @click="cerrarMenuHamburguesa">{{ t('gatos') }}</RouterLink>
           <RouterLink to="/protectoras" @click="cerrarMenuHamburguesa">{{ t('protectoras') }}</RouterLink>
-          <RouterLink to="/consejos-expertos" @click="cerrarMenuHamburguesa">{{ t('consejos_expertos') }}</RouterLink>
+          <RouterLink to="/eventos" @click="cerrarMenuHamburguesa">{{ t('Eventos') }}</RouterLink>
         </nav>
 
         <div class="usuario-section">
@@ -224,7 +224,7 @@ function resetPaw(ctx: CanvasRenderingContext2D) {
               <img 
                 :src="idioma === 'es' ? esFlag : gbFlag" 
                 :alt="idioma === 'es' ? 'Español' : 'English'"
-                class="bandera"
+                class="bandera" 
               >
               <span class="idioma-texto">{{ idioma.toUpperCase() }}</span>
             </button>
@@ -323,6 +323,11 @@ function resetPaw(ctx: CanvasRenderingContext2D) {
 </template>
 
 <style scoped lang="scss">
+/* ====== FIX OVERFLOW GLOBAL: evita scroll horizontal ====== */
+*, *::before, *::after { box-sizing: border-box; }
+:root, html, body { width: 100%; max-width: 100%; overflow-x: hidden; } /* clave */
+main { width: 100%; }                                 /* clave */
+
 header {
   font-family: $fuente-titulos;
   display: flex;
@@ -331,8 +336,8 @@ header {
   padding: $espacio-mediano 15px;
   width: 100%;
   min-height: 80px;
-  background: transparent;
-  position: relative;
+  background: transparent;              /* ancla del menú */
+  z-index: 2000;                      /* header por encima del body */
 }
 
 .logo-container {
@@ -346,6 +351,13 @@ header {
   flex: 1;
   margin-left: 20px;
   position: relative;
+}
+
+/* ====== FIX FLEX: deja que los hijos se encojan ====== */
+.header-content,
+.usuario-section,
+.desktop-nav { 
+  min-width: 0;   /* clave para evitar desbordes de texto/links */
 }
 
 .desktop-nav {
@@ -378,7 +390,7 @@ header {
   border: none;
   cursor: pointer;
   padding: 0;
-  z-index: 1001;
+  z-index: 5001 !important; /* ↑ prioridad sobre cualquier otro overlay dentro del header */
   
   span {
     width: 100%;
@@ -405,21 +417,23 @@ header {
   }
 }
 
+/* === Menú hamburguesa: se muestra por encima pero NO acompaña el scroll === */
 .menu-hamburguesa {
-  position: absolute;
-  top: 100%;
+  position: absolute;                  /* relativo al header → desaparece al hacer scroll */
+  top: calc(100% + 8px);               /* justo debajo del header */
   left: 0;
   right: 0;
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1500;
+  z-index: 5000 !important;            /* por encima del body */
   padding: 15px;
-  margin-top: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 70vh;                    /* si crece mucho, solo el menú scrollea */
+  overflow-y: auto;
 
   a {
     padding: 12px 15px;
@@ -759,7 +773,67 @@ canvas {
   }
 }
 
-// Responsive
+/* ===== MOVIL: apilar Iniciar sesión / Registrarse Y evitar overflow ===== */
+@media (max-width: 767px) {
+  header {
+    padding: 12px 12px;                 /* menos padding lateral */
+  }
+
+  .header-content {
+    margin-left: 12px;                  /* era 20px, así no empuja el ancho */
+  }
+
+  .menu-hamburguesa {
+    top: calc(100% + 8px);              /* igual que en desktop */
+    max-height: 70vh;                   /* control del alto */
+    left: 0;
+    right: 0;
+  }
+
+  /* >>> CAMBIO PRINCIPAL: idioma al lado de los auth-links <<< */
+  .usuario-section {
+    flex-direction: row;                /* antes: column → ahora en fila */
+    align-items: flex-start;            /* alinea arriba para que encaje con el bloque de links */
+    justify-content: flex-end;          /* pegado a la derecha */
+    gap: 10px;                          /* pequeño espacio entre idioma y links */
+  }
+
+  .usuario {
+    display: flex;
+    flex-direction: column;             /* los enlaces siguen apilados en vertical */
+    align-items: flex-end;              /* alinea a la derecha */
+    gap: 4px;
+  }
+
+  .auth-link {
+    display: block;                     /* cada enlace en su propia línea */
+    padding: 6px 10px;                  /* compacto */
+    text-align: right;
+    font-size: 0.9rem;
+    white-space: normal;                /* permite salto de línea si hace falta */
+  }
+
+  .idioma-btn {
+    padding: 6px 8px;                   /* compacto para no empujar layout */
+  }
+
+  canvas {
+    width: 64px;
+    height: 64px;                       /* el logo no forzará el ancho */
+    max-width: 100%;
+  }
+}
+
+/* ===== Recomendado: cortar textos largos para que no “empujen” ===== */
+.usuario-nombre,
+.desktop-nav a,
+.menu-option,
+.auth-link {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+  
+/* Responsive */
 @media (min-width: 768px) {
   header {
     padding: 15px $espacio-extra-grande;

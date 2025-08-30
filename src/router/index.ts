@@ -19,7 +19,14 @@ import CuidadoBasico from '@/views/CuidadoBasicoView.vue'
 import ConvivenciaAnimales from '@/views/ConvivenciaAnimalesView.vue'
 import ControlReproduccion from '@/views/ControlReproduccionView.vue'
 import GestionUsuariosView from '../views/GestionUsuariosView.vue'
+import GestionAdopcionesView from '@/views/GestionAdopcionesView.vue'
 import { useAutenticacion } from '@/stores/Autentificacion'
+import EventosView from '@/views/EventosView.vue'
+import DetalleEventoView from '@/views/DetallesEventoView.vue'
+import EquipoVoluntariosView from '@/views/EquipoVoluntariosView.vue'
+import HistoriaView from '@/views/HistoriaView.vue'
+import HazteVoluntarioView from '@/views/HazteVoluntarioView.vue'
+import DonacionesView from '@/views/DonacionesView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -49,6 +56,36 @@ const router = createRouter({
       path: '/gato',
       name: 'gato',
       component: GatoView,
+    },
+    {
+      path: '/eventos',
+      name: 'eventos',
+      component: EventosView,
+    },
+    {
+      path: '/eventos/:id',
+      name: 'detalle-evento',
+      component: () => import('@/views/DetallesEventoView.vue')
+    },
+    {
+      path: '/equipo',
+      name: 'equipo',
+      component: EquipoVoluntariosView,
+    },
+    {
+      path: '/historia',
+      name: 'historia',
+      component: HistoriaView,
+    },
+    {
+      path: '/hazte-voluntario',
+      name: 'hazte-voluntario',
+      component: HazteVoluntarioView,
+    },
+    {
+      path: '/donaciones',
+      name: 'donaciones',
+      component: DonacionesView,
     },
     {
       path: "/faq",
@@ -144,6 +181,10 @@ const router = createRouter({
         {
           path: 'gestion-usuarios',
           component: GestionUsuariosView
+        },
+        {
+          path: 'gestion-adopciones',
+          component: GestionAdopcionesView
         }
       ]
     },
@@ -156,12 +197,10 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const autenticacionStore = useAutenticacion()
 
-  // Redirección si necesita login
   if (to.meta.requiresAuth && !autenticacionStore.esAutenticado) {
     return next('/iniciar-sesion')
   }
 
-  // Redirección si requiere rol admin y no lo es
   if (to.meta.requiereAdmin && (!autenticacionStore.usuario || autenticacionStore.usuario.rol !== 'admin')) {
     return next('/')
   }

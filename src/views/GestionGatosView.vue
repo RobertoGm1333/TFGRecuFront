@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { usegatosStore } from "@/stores/gatos.ts";
 
 const gatosStore = usegatosStore();
-const gatos = ref([]);
+const gatos = ref<any[]>([]);
 const mostrarDialogo = ref(false);
 const mostrarConfirmacion = ref(false);
-const gatoAEliminar = ref(null);
+const gatoAEliminar = ref<any|null>(null);
 const mostrarMensaje = ref(false);
 const mensajeTexto = ref('');
-const mensajeTipo = ref('success');
+const mensajeTipo = ref<'success'|'error'>('success');
+
+/* NUEVO: búsqueda */
+const busqueda = ref("");
 
 const gato = ref({
   id_Gato: 0,
@@ -27,6 +30,22 @@ const gato = ref({
 
 const formularioGato = ref();
 
+// NUEVO: lista fija de razas disponibles para el selector 
+const RAZAS = [
+  'Pardo',
+  'Gris', 
+  'Tuxedo',
+  'Blanco',
+  'Naranja y negro',
+  'Blanco y pardo',
+  'Negro',
+  'Carey',
+  'Naranja',
+  'Naranja y blanco',
+  'Tricolor',
+  'Siames'
+];
+
 const headers = [
   { title: 'ID', key: 'id_Gato', align: 'start' },
   { title: 'Nombre', key: 'nombre_Gato' },
@@ -38,8 +57,35 @@ const headers = [
   { title: 'Acciones', key: 'acciones', sortable: false, align: 'end' }
 ];
 
+const archivoImagen = ref<File|null>(null)
+const fotoPreview = ref<string|null>(null)
+
+function cambioImagen(e: Event) {
+  const input = e.target as HTMLInputElement
+  if (!input.files || !input.files.length) return
+  const file = input.files[0]
+  archivoImagen.value = file
+
+  const reader = new FileReader()
+  reader.onload = () => {
+    fotoPreview.value = reader.result as string
+  }
+  reader.readAsDataURL(file)
+}
+
+
+const protectoras = ref<any[]>([])
+const itemsProtectoras = computed(() =>
+  (protectoras.value || []).map((p: any) => ({
+    title: p.nombre_Protectora ?? p.nombre ?? `#${p.id_Protectora}`,
+    value: p.id_Protectora
+  }))
+)
+
+
 onMounted(async () => {
   await cargarGatos();
+  await cargarProtectoras();
 });
 
 async function cargarGatos() {
@@ -51,6 +97,19 @@ async function cargarGatos() {
     mensajeTipo.value = 'error';
     mensajeTexto.value = 'Error al cargar los gatos';
     mostrarMensaje.value = true;
+  }
+}
+
+// NUEVO: fetch de protectorAs
+async function cargarProtectoras() {
+  try {
+    const res = await fetch('http://localhost:5167/api/Protectora', { headers: { Accept: 'application/json' } })
+    if (!res.ok) throw new Error('Error HTTP ' + res.status)
+    const data = await res.json()
+    protectoras.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    console.error('Error al cargar las protectoras:', e)
+    protectoras.value = []
   }
 }
 
@@ -68,11 +127,17 @@ function abrirFormulario() {
     id_Protectora: 0,
     visible: true
   };
+  // NUEVO: reset de imagen
+  archivoImagen.value = null
+  fotoPreview.value = null
   mostrarDialogo.value = true;
 }
 
-function editarGato(item) {
+function editarGato(item: any) {
   gato.value = { ...item };
+  // NUEVO: reset/preview desde URL existente (si la hay)
+  archivoImagen.value = null
+  fotoPreview.value = gato.value.imagen_Gato || null
   mostrarDialogo.value = true;
 }
 
@@ -85,13 +150,41 @@ async function guardarGato() {
     const { valid } = await formularioGato.value?.validate();
     if (!valid) return;
 
-    if (gato.value.id_Gato === 0) {
-      await gatosStore.createGato(gato.value);
-      mensajeTexto.value = 'Gato agregado exitosamente';
+
+    if (archivoImagen.value) {
+      const creando = gato.value.id_Gato === 0
+      const url = creando
+        ? 'http://localhost:5167/api/Gato'
+        : `http://localhost:5167/api/Gato/${gato.value.id_Gato}`
+      const method = creando ? 'POST' : 'PUT'
+
+      const formData = new FormData()
+      formData.append('nombre_Gato', gato.value.nombre_Gato)
+      formData.append('raza', gato.value.raza)
+      formData.append('edad', String(gato.value.edad))
+      formData.append('sexo', gato.value.sexo)
+      formData.append('esterilizado', gato.value.esterilizado ? 'true' : 'false')
+      formData.append('descripcion_Gato', gato.value.descripcion_Gato || '')
+      formData.append('descripcion_Gato_En', gato.value.descripcion_Gato_En || '')
+      formData.append('id_Protectora', String(gato.value.id_Protectora || 0))
+      formData.append('visible', gato.value.visible ? 'true' : 'false')
+      formData.append('imagen', archivoImagen.value) // archivo real
+
+      const res = await fetch(url, { method, body: formData })
+      if (!res.ok) throw new Error('Error al guardar el gato')
+
+      mensajeTexto.value = creando ? 'Gato agregado exitosamente' : 'Gato actualizado exitosamente'
     } else {
-      await gatosStore.updateGato(gato.value);
-      mensajeTexto.value = 'Gato actualizado exitosamente';
+
+      if (gato.value.id_Gato === 0) {
+        await gatosStore.createGato(gato.value);
+        mensajeTexto.value = 'Gato agregado exitosamente';
+      } else {
+        await gatosStore.updateGato(gato.value);
+        mensajeTexto.value = 'Gato actualizado exitosamente';
+      }
     }
+
     
     mensajeTipo.value = 'success';
     mostrarMensaje.value = true;
@@ -105,7 +198,7 @@ async function guardarGato() {
   }
 }
 
-function pedirConfirmacion(item) {
+function pedirConfirmacion(item: any) {
   gatoAEliminar.value = item;
   mostrarConfirmacion.value = true;
 }
@@ -127,6 +220,17 @@ async function confirmarEliminacion() {
     mostrarMensaje.value = true;
   }
 }
+
+/* NUEVO: lista filtrada por búsqueda */
+const gatosFiltrados = computed(() => {
+  const q = busqueda.value.trim().toLowerCase();
+  if (!q) return gatos.value;
+  return gatos.value.filter((g: any) =>
+    (g?.nombre_Gato ?? '').toLowerCase().includes(q) ||
+    (g?.raza ?? '').toLowerCase().includes(q) ||
+    (g?.sexo ?? '').toLowerCase().includes(q)
+  );
+});
 </script>
 
 <template>
@@ -136,15 +240,28 @@ async function confirmarEliminacion() {
         <h1 class="admin-view__titulo">Gestión de Gatos</h1>
       </v-col>
       <v-col cols="12" sm="auto" class="text-center text-sm-start mt-4 mt-sm-0 px-4">
-        <v-btn color="primary" @click="abrirFormulario" class="admin-view__boton">Nuevo gato</v-btn>
+        <v-btn color="primary" @click="abrirFormulario" class="admin-view__boton">+ Nuevo gato</v-btn>
       </v-col>
     </v-row>
+
+    <!-- NUEVO: barra de búsqueda -->
+    <div class="px-4 mb-4">
+      <v-text-field
+        v-model="busqueda"
+        label="Buscar gato"
+        prepend-inner-icon="mdi-magnify"
+        density="comfortable"
+        variant="outlined"
+        hide-details
+        clearable
+      />
+    </div>
 
     <!-- Tabla responsive -->
     <div class="admin-view__tabla-container px-4">
       <v-data-table
         :headers="headers"
-        :items="gatos"
+        :items="gatosFiltrados"
         class="elevation-1 admin-view__tabla"
         :class="{'admin-view__tabla--mobile': $vuetify.display.smAndDown}"
       >
@@ -162,13 +279,12 @@ async function confirmarEliminacion() {
         
         <template v-slot:item.acciones="{ item }">
           <div class="admin-view__acciones">
-            <v-btn color="primary" @click="editarGato(item)" class="mb-2 mb-sm-0 me-sm-2">
+            <!-- Iconos circulares, solo símbolo -->
+            <v-btn icon color="blue" size="small" class="mb-2 mb-sm-0 me-sm-2" @click="editarGato(item)">
               <v-icon>mdi-pencil</v-icon>
-              <span class="d-none d-sm-inline ms-2">Editar</span>
             </v-btn>
-            <v-btn color="error" @click="pedirConfirmacion(item)">
+            <v-btn icon color="red" size="small" @click="pedirConfirmacion(item)">
               <v-icon>mdi-delete</v-icon>
-              <span class="d-none d-sm-inline ms-2">Eliminar</span>
             </v-btn>
           </div>
         </template>
@@ -203,12 +319,15 @@ async function confirmarEliminacion() {
                 />
               </v-col>
               <v-col cols="12" sm="6">
-                <v-text-field
+                <!-- Sustituido input de texto por selector de razas -->
+                <v-select
                   v-model="gato.raza"
+                  :items="RAZAS"
                   label="Raza"
                   :rules="[v => !!v || 'Campo obligatorio']"
                   variant="outlined"
                   density="comfortable"
+                  :menu-props="{ maxHeight: 300 }"
                 />
               </v-col>
             </v-row>
@@ -236,13 +355,17 @@ async function confirmarEliminacion() {
             </v-row>
             <v-row>
               <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model.number="gato.id_Protectora"
-                  label="ID Protectora"
-                  type="number"
-                  :rules="[v => v > 0 || 'Debe ser mayor que 0']"
+                <!-- NUEVO: en vez de ID, selector por nombre de protectora -->
+                <v-select
+                  v-model="gato.id_Protectora"
+                  :items="itemsProtectoras"
+                  item-title="title"
+                  item-value="value"
+                  label="Protectora"
+                  :rules="[v => v > 0 || 'Selecciona una protectora']"
                   variant="outlined"
                   density="comfortable"
+                  :menu-props="{ maxHeight: 300 }"
                 />
               </v-col>
               <v-col cols="12" sm="6">
@@ -265,13 +388,25 @@ async function confirmarEliminacion() {
               variant="outlined"
               class="mb-4"
             />
-            <v-text-field
-              v-model="gato.imagen_Gato"
-              label="URL de imagen"
-              :rules="[v => !!v || 'Campo obligatorio']"
-              variant="outlined"
-              density="comfortable"
-            />
+
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-file-input
+                  label="Imagen del gato"
+                  accept="image/*"
+                  variant="outlined"
+                  density="comfortable"
+                  @change="cambioImagen"
+                  clearable
+                />
+              </v-col>
+              <v-col cols="12" sm="6" class="d-flex justify-center align-center">
+                <v-avatar size="120" v-if="fotoPreview">
+                  <v-img :src="fotoPreview" alt="Preview" />
+                </v-avatar>
+                <div v-else class="text-caption">Sin imagen</div>
+              </v-col>
+            </v-row>
             <v-checkbox v-model="gato.visible" label="Visible públicamente" />
           </v-form>
         </v-card-text>
@@ -423,8 +558,8 @@ async function confirmarEliminacion() {
       height: 36px !important;
 
       @media (min-width: 600px) {
-        min-width: 64px !important;
-        padding: 0 16px !important;
+        min-width: 40px !important;
+        padding: 0 12px !important;
       }
     }
   }
@@ -519,7 +654,7 @@ async function confirmarEliminacion() {
   @media (min-width: 960px) {
     max-width: 1200px;
     padding: $espacio-grande;
-    margin-top: 95px;
+    margin-top: 95px; 
   }
 }
 
