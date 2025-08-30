@@ -326,7 +326,7 @@ function resetPaw(ctx: CanvasRenderingContext2D) {
 /* ====== FIX OVERFLOW GLOBAL: evita scroll horizontal ====== */
 *, *::before, *::after { box-sizing: border-box; }
 :root, html, body { width: 100%; max-width: 100%; overflow-x: hidden; } /* clave */
-main { width: 100%; overflow-x: hidden; }                                 /* clave */
+main { width: 100%; }                                 /* clave */
 
 header {
   font-family: $fuente-titulos;
@@ -336,8 +336,8 @@ header {
   padding: $espacio-mediano 15px;
   width: 100%;
   min-height: 80px;
-  background: transparent;
-  position: relative;
+  background: transparent;              /* ancla del menú */
+  z-index: 2000;                      /* header por encima del body */
 }
 
 .logo-container {
@@ -390,7 +390,7 @@ header {
   border: none;
   cursor: pointer;
   padding: 0;
-  z-index: 1001;
+  z-index: 5001 !important; /* ↑ prioridad sobre cualquier otro overlay dentro del header */
   
   span {
     width: 100%;
@@ -417,21 +417,23 @@ header {
   }
 }
 
+/* === Menú hamburguesa: se muestra por encima pero NO acompaña el scroll === */
 .menu-hamburguesa {
-  position: absolute;
-  top: 100%;
+  position: absolute;                  /* relativo al header → desaparece al hacer scroll */
+  top: calc(100% + 8px);               /* justo debajo del header */
   left: 0;
   right: 0;
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1500;
+  z-index: 5000 !important;            /* por encima del body */
   padding: 15px;
-  margin-top: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 70vh;                    /* si crece mucho, solo el menú scrollea */
+  overflow-y: auto;
 
   a {
     padding: 12px 15px;
@@ -782,8 +784,10 @@ canvas {
   }
 
   .menu-hamburguesa {
-    left: 12px;                         /* márgenes internos para no salirse */
-    right: 12px;
+    top: calc(100% + 8px);              /* igual que en desktop */
+    max-height: 70vh;                   /* control del alto */
+    left: 0;
+    right: 0;
   }
 
   /* >>> CAMBIO PRINCIPAL: idioma al lado de los auth-links <<< */

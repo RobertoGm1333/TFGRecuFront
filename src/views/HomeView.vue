@@ -60,7 +60,7 @@ const { t } = useI18n()
     </div>
 
     <div class="testimonio">
-      <img class="testimonio__foto" src="../../Images/gatos/Luca.png" alt="gato testimonio 2" />
+      <img class="testimonio__foto" src="../../Images/gatos/Onice.png" alt="gato testimonio 2" />
       <div class="testimonio__contenido">
         <h3 class="testimonio__usuario">Toñi </h3>
         <p class="testimonio__texto">

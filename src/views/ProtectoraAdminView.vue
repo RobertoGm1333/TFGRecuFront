@@ -1550,9 +1550,7 @@ $color-blanco: #ffffff;
   border-radius: 8px;
 }
 
-/* ▼▼▼ Ajustes específicos móvil para ADOPCIONES ▼▼▼ */
 .adopciones-card {
-  max-width: 760px;
   margin-inline: auto;
 }
 .adopciones-tabs {
